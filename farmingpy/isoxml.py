@@ -25,6 +25,7 @@ class TimeLogData(object):
         self.devices = list(self._timelog_data[0].devices)
         self.products = dict(self._timelog_data[0].products)
         self._rates = None
+        self._data = None
 
     def load(self, taskfile):
         # Call C# library to read data
@@ -51,11 +52,14 @@ class TimeLogData(object):
 
     @property
     def data(self):
+        if self._data is not None:
+            return self._data
         df = pd.concat([self._tlg_to_dataframe(tlg) for tlg in self._timelog_data])
         gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.PositionEast / 1e7, df.PositionNorth / 1e7),
                            crs="epsg:4326")
         del gdf["PositionEast"]
         del gdf["PositionNorth"]
+        self._data = gdf
         return gdf
 
     def _tlg_to_dataframe(self, tlg):
@@ -108,7 +112,13 @@ class TimeLogData(object):
         del df["TimeStartTOFD"]
         return df
 
-    def __html__(self):
-        pass
+    def _repr_html_(self):
+        products = list(self.products.values())
+        len(self._timelog_data)
 
-
+        return f"""
+        <strong>Farm:</strong> {self.farm} <br/>
+        <strong>Field:</strong> {self.field} <br/>
+        <strong>Task name: </strong> {self.taskname} <br/>
+        <strong>Products: </strong> {products}
+        """
