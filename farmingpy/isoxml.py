@@ -50,17 +50,33 @@ class TimeLogData(object):
         return pd.DataFrame({"Device": det, "DET": detno, "Description": dpd, "DVC": dvc,
                       "DDI": ddi, "DDI_description": ddi_desc})
 
+
+    def _convert_columns(self, df):
+        df.insert(0, "time", pd.DatetimeIndex(df.TimeStartDATE + "T" + df.TimeStartTOFD))
+        df.insert(1, "latitude", df.PositionNorth/1e7)
+        df.insert(2, "longitude", df.PositionEast / 1e7)
+
+        del df["PositionEast"]
+        del df["PositionNorth"]
+        del df["TimeStartDATE"]
+        del df["TimeStartTOFD"]
+
+        if "PositionUp" in df:
+            df.insert(3, "height",df["PositionUp"]/1e3)
+            del df["PositionUp"]
+        return df
+
     @property
     def data(self):
         if self._data is not None:
             return self._data
         df = pd.concat([self._tlg_to_dataframe(tlg) for tlg in self._timelog_data])
-        gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.PositionEast / 1e7, df.PositionNorth / 1e7),
-                           crs="epsg:4326")
-        del gdf["PositionEast"]
-        del gdf["PositionNorth"]
-        self._data = gdf
-        return gdf
+        # Geopandas conversion is quite slow, maybe not needed?
+        #gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude),
+        #                   crs="epsg:4326")
+        #self._data = gdf
+        self._data = df
+        return df
 
     def _tlg_to_dataframe(self, tlg):
         df = pd.DataFrame()
@@ -68,10 +84,7 @@ class TimeLogData(object):
             df[hdata.name.replace(" ", "_")] = np.array(hdata.values)
         for tdata in tlg.datalogdata:
             df[tdata.name.replace(" ", "_").lower()] = np.array(tdata.values)
-        df.insert(0, "time", pd.DatetimeIndex(df.TimeStartDATE + "T" + df.TimeStartTOFD))
-        del df["TimeStartDATE"]
-        del df["TimeStartTOFD"]
-        #df.insert(1, "gpstime", pd.DatetimeIndex(df.GpsUtcDate + "T" + df.GpsUtcTime))
+        df = self._convert_columns(df)
         return df
 
     """Read only application rate columns"""
@@ -79,12 +92,13 @@ class TimeLogData(object):
     def rates(self):
         if self._rates is not None:
             return self._rates
-
         df = pd.concat([self._rates_to_dataframe(tlg) for tlg in self._timelog_data])
-        gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.PositionEast / 1e7, df.PositionNorth / 1e7),
+        lon = df.longitude
+        lat = df.latitude
+        del df["longitude"]
+        del df["latitude"]
+        gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(lon, lat),
                                crs="epsg:4326")
-        del gdf["PositionEast"]
-        del gdf["PositionNorth"]
         self._rates = gdf
         return gdf
 
@@ -107,9 +121,7 @@ class TimeLogData(object):
             tdata = tlg.datalogdata[int(widx)]
             if tdata.DETno in rate_dets:
                 df[tdata.name.replace(" ", "_").lower() + "_" + tdata.DETno] = np.array(tdata.values)
-        df.insert(0, "time", pd.DatetimeIndex(df.TimeStartDATE + "T" + df.TimeStartTOFD))
-        del df["TimeStartDATE"]
-        del df["TimeStartTOFD"]
+        df = self._convert_columns(df)
         return df
 
     def _repr_html_(self):
