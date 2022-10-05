@@ -1,3 +1,4 @@
+import os
 import re
 
 def parse_ddi(raw):
@@ -8,7 +9,7 @@ def parse_ddi(raw):
 def read_ddis(ddi_file):
     with open(ddi_file, "r", encoding="utf8") as f:
         ddi_text = f.read()
-    entries = re.split(r"\n\n", ddi_text)
+    entries = re.split("\n{3,}", ddi_text)
     DDIs = {}
     for entry in entries:
         if entry.strip().startswith("DD Entity"):
@@ -16,3 +17,8 @@ def read_ddis(ddi_file):
             DDIs[ddi] = {"description" : description , "full_description" : raw}
     return DDIs
 
+"""Print DD entity"""
+def print_ddi(ddi):
+    print(DDIs[84]["full_description"])
+
+DDIs = read_ddis(os.path.dirname(__file__) + "/data/ddi_export_20221004.txt")

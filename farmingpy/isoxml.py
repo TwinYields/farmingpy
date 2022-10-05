@@ -4,7 +4,7 @@ if pythonnet.get_runtime_info() is None:
 import clr
 import sys
 import os
-from .ddi import read_ddis
+from .ddi import DDIs
 import pandas as pd
 import geopandas as gpd
 import numpy as np
@@ -13,7 +13,6 @@ sys.path.append(os.path.dirname(__file__) + "/data")
 clr.AddReference("ISOXML")
 import ISOXML
 
-DDIs = read_ddis(os.path.dirname(__file__) + "/data/ddi_export_20221004.txt")
 
 class TimeLogData(object):
 
