@@ -6,7 +6,7 @@ def parse_ddi(raw):
     return int(ddi), description, raw
 
 def read_ddis(ddi_file):
-    with open(ddi_file, "r") as f:
+    with open(ddi_file, "r", encoding="utf8") as f:
         ddi_text = f.read()
     entries = re.split(r"\n\n", ddi_text)
     DDIs = {}
