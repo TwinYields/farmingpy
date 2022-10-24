@@ -65,17 +65,18 @@ class TimeLogData(object):
             del df["PositionUp"]
         return df
 
-    @property
-    def data(self):
-        if self._data is not None:
-            return self._data
+    def data(self, geo=False):
+        #if self._data is not None:
+        #    return self._data
         df = pd.concat([self._tlg_to_dataframe(tlg) for tlg in self._timelog_data])
-        # Geopandas conversion is quite slow, maybe not needed?
-        #gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude),
-        #                   crs="epsg:4326")
-        #self._data = gdf
-        self._data = df
-        return df
+        #self._data = df
+        if geo:
+            # Geopandas conversion is quite slow
+            gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude),
+                           crs="epsg:4326")
+            return gdf
+        else:
+            return df
 
     def _tlg_to_dataframe(self, tlg):
         df = pd.DataFrame()
@@ -87,19 +88,21 @@ class TimeLogData(object):
         return df
 
     """Read only application rate columns"""
-    @property
-    def rates(self):
-        if self._rates is not None:
-            return self._rates
+    def rates(self, geo=False):
+        #if self._rates is not None:
+        #    return self._rates
         df = pd.concat([self._rates_to_dataframe(tlg) for tlg in self._timelog_data])
-        lon = df.longitude
-        lat = df.latitude
-        del df["longitude"]
-        del df["latitude"]
-        gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(lon, lat),
+        #self._rates = df
+        if geo:
+            lon = df.longitude
+            lat = df.latitude
+            del df["longitude"]
+            del df["latitude"]
+            gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(lon, lat),
                                crs="epsg:4326")
-        self._rates = gdf
-        return gdf
+            return gdf
+        else:
+            return df
 
     def _rates_to_dataframe(self, tlg):
         ddis = np.array([d.DDI for d in tlg.datalogdata])

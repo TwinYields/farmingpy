@@ -19,6 +19,6 @@ def read_ddis(ddi_file):
 
 """Print DD entity"""
 def print_ddi(ddi):
-    print(DDIs[84]["full_description"])
+    print(DDIs[ddi]["full_description"])
 
 DDIs = read_ddis(os.path.dirname(__file__) + "/data/ddi_export_20221004.txt")
