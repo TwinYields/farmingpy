@@ -18,9 +18,9 @@ tl = fp.TimeLogData("TASKDATA_20210603_0159/TASKDATA.XML")
 # List measurement info
 tl.headers
 # DataFrame containing all logged data
-tl.data
+tl.data()
 # GeoDataFrame containing only "Actual Mass Per Area Application Rate" (DD entity 7)
 # and "Actual Work State" columns
-tl.rates
+tl.rates()
 ```
 
