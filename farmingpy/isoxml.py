@@ -8,11 +8,11 @@ from .ddi import DDIs
 import pandas as pd
 import geopandas as gpd
 import numpy as np
+from . import zoning
 
 sys.path.append(os.path.dirname(__file__) + "/data")
 clr.AddReference("ISOXML")
 import ISOXML
-
 
 class TimeLogData(object):
 
@@ -117,14 +117,22 @@ class TimeLogData(object):
         for ridx in rate_idx:
             tdata = tlg.datalogdata[int(ridx)]
             rate_dets.append(tdata.DETno)
-            df[tdata.name.replace(" ", "_").lower() + "_" + tdata.DETno] = np.array(tdata.values)/100
+            df[tdata.DETno] = np.array(tdata.values)/100
         #Get working states for DETs with rate
         for widx in working_state_idx:
             tdata = tlg.datalogdata[int(widx)]
             if tdata.DETno in rate_dets:
-                df[tdata.name.replace(" ", "_").lower() + "_" + tdata.DETno] = np.array(tdata.values)
+                df["work_state" + "_" + tdata.DETno] = np.array(tdata.values)
         df = self._convert_columns(df)
         return df
+
+    def rasterize_rates(self, cols=None, spacing=1, crs="epsg:2393"):
+        if cols == None:
+            cols = list(self.products.keys())
+        rates = self.rates()
+        return zoning.rasterize(rates, cols = cols, spacing = spacing, crs=crs)
+        # Interpolate to 1m grid using verde
+
 
     def _repr_html_(self):
         products = list(self.products.values())
