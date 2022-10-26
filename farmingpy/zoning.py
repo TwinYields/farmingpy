@@ -2,7 +2,7 @@ import verde as vd
 import pyproj
 import numpy as np
 import pandas as pd
-from rasterio.transform import Affine
+import rioxarray
 import rasterio.features
 from shapely.geometry import shape
 import geopandas as gpd
@@ -25,10 +25,11 @@ def rasterize(df, cols, spacing=1, crs="epsg:2393"):
                 idata = grid.copy()
             else:
                 idata[colname] = grid[colname]
-        idata.attrs["crs"] = crs
+        idata = idata.rename({"easting" : "x", "northing" : "y"})
+        idata.rio.set_crs(crs)
         return idata
 
-def unique_zones(data, min_area=500):
+def unique_zones(data, connectivity = 8, min_area=500):
     cols = list(data.data_vars.keys())
     #Round and convert to numpy
     idata = {}
@@ -52,17 +53,10 @@ def unique_zones(data, min_area=500):
         zones.append(vdf)
     zone_df = pd.DataFrame(zones)
 
-    ## Convert to polygons
-    x = grid.easting.values
-    y = grid.northing.values
-    Z = grid.data.values
-
-    xres = (x[-1] - x[0]) / len(x)
-    yres = (y[-1] - y[0]) / len(y)
-    transform = Affine.translation(x[0] - xres / 2, y[0] - yres / 2) * Affine.scale(xres, yres)
-
-    shapes = rasterio.features.shapes(grid.data.values.astype("float32"),
-                                  mask=grid.data.values>0, connectivity=4, transform=transform)
+    M = grid.data.values.astype("float32")
+    shapes = rasterio.features.shapes(M,
+                                  mask = M > 0, connectivity = connectivity,
+                                  transform=data.rio.transform())
     levels = []
     geometry = []
     zones = []
@@ -73,7 +67,7 @@ def unique_zones(data, min_area=500):
         zones.append(idx)
         idx += 1
     gdf = gpd.GeoDataFrame({'zone' : zones, 'level': levels, 'geometry': geometry},
-        crs=data.crs)
+        crs=data.rio.crs)
 
     gdf = gdf.merge(zone_df)
     gdf = gdf[gdf.area > min_area]

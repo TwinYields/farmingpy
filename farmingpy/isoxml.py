@@ -128,8 +128,10 @@ class TimeLogData(object):
 
     def rasterize_rates(self, cols=None, spacing=1, crs="epsg:2393"):
         if cols == None:
-            cols = list(self.products.keys())
+            cols = sorted(self.products.keys())
         rates = self.rates()
+        work_col = rates.columns[rates.columns.str.startswith("work_state")][0]
+        rates = rates[rates[work_col] > 0]
         return zoning.rasterize(rates, cols = cols, spacing = spacing, crs=crs)
         # Interpolate to 1m grid using verde
 
