@@ -2,6 +2,7 @@ import verde as vd
 import pyproj
 import numpy as np
 import pandas as pd
+import xarray
 import rioxarray
 import rasterio.features
 from shapely.geometry import shape
@@ -26,10 +27,14 @@ def rasterize(df, cols, spacing=1, crs="epsg:2393"):
             else:
                 idata[colname] = grid[colname]
         idata = idata.rename({"easting" : "x", "northing" : "y"})
-        idata.rio.set_crs(crs)
+        idata.rio.write_crs(crs, inplace=True)
         return idata
 
 def unique_zones(data, connectivity = 8, min_area=500):
+    T = type(data)
+    if T == xarray.DataArray:
+        data = data.to_dataset()
+
     cols = list(data.data_vars.keys())
     #Round and convert to numpy
     idata = {}
@@ -49,11 +54,29 @@ def unique_zones(data, connectivity = 8, min_area=500):
         vdf = {"level" : grp_idx, "grp" : g}
         grp_idx +=1
         for i in range(len(cols)):
-            vdf[cols[i]] = g[i]
+            vdf[cols[i]] = v[cols[i]].iloc[0]
         zones.append(vdf)
     zone_df = pd.DataFrame(zones)
 
-    M = grid.data.values.astype("float32")
+    #print(zone_df)
+    #print(grid)
+    gdf = shapes(grid.data, connectivity)
+    #print(gdf)
+    gdf = gdf.merge(zone_df)
+    gdf = gdf[gdf.area > min_area]
+    gdf = gdf.iloc[np.argsort(-gdf.area)]
+    gdf["zone"] = np.array(range(gdf.shape[0]))+1
+    gdf = gdf.reset_index(drop=True)
+    return gdf
+
+
+def shapes(data, connectivity=8):
+    T = type(data)
+    if T == xarray.DataArray:
+        M = data.values.astype("float32")
+    else:
+        col = list(data.data_vars.keys())[0]
+        M = data[col].values.astype("float32")
     shapes = rasterio.features.shapes(M,
                                   mask = M > 0, connectivity = connectivity,
                                   transform=data.rio.transform())
@@ -68,10 +91,4 @@ def unique_zones(data, connectivity = 8, min_area=500):
         idx += 1
     gdf = gpd.GeoDataFrame({'zone' : zones, 'level': levels, 'geometry': geometry},
         crs=data.rio.crs)
-
-    gdf = gdf.merge(zone_df)
-    gdf = gdf[gdf.area > min_area]
-    gdf = gdf.iloc[np.argsort(-gdf.area)]
-    gdf["zone"] = np.array(range(gdf.shape[0]))+1
-    gdf = gdf.reset_index(drop=True)
     return gdf
