@@ -1,4 +1,4 @@
-pythonnet==3.0.0.post1
+pythonnet>=3.0.0.post1
 geopandas>=0.11.0
 rioxarray
 pandas
