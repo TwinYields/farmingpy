@@ -19,7 +19,10 @@ def rasterize(df, cols, spacing=1, crs="epsg:2393"):
         grid_coords = vd.grid_coordinates(region = region, spacing=spacing, adjust="region")
         for i in range(len(cols)):
             colname = cols[i]
-            gridder = vd.ScipyGridder(method="nearest").fit(filter_coords, filter_data[i])
+            if type(filter_data) == tuple:
+                gridder = vd.ScipyGridder(method="nearest").fit(filter_coords, filter_data[i])
+            else:
+                gridder = vd.ScipyGridder(method="nearest").fit(filter_coords, filter_data)
             grid = gridder.grid(coordinates=grid_coords, data_names=colname)
             grid = vd.distance_mask(proj_coords, maxdist=5, grid=grid)
             if i == 0:
