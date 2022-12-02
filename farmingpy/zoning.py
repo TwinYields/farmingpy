@@ -3,15 +3,14 @@ import pyproj
 import numpy as np
 import pandas as pd
 import xarray
-import rioxarray
 import rasterio.features
 from shapely.geometry import shape
 import geopandas as gpd
 
-def rasterize(df, cols, spacing=1, crs="epsg:2393"):
+def rasterize(df, cols, spacing=1, maxdist=5, crs="epsg:2393"):
         transformer = pyproj.Transformer.from_crs("epsg:4326", crs, always_xy=True)
         proj_coords = transformer.transform(df.longitude, df.latitude)
-        reducer = vd.BlockReduce(np.median, spacing=1)
+        reducer = vd.BlockReduce(np.median, spacing=spacing)
         data = tuple(df[col].to_numpy() for col in cols)
         filter_coords, filter_data = reducer.filter(proj_coords, data)
         x,y=proj_coords
@@ -24,7 +23,7 @@ def rasterize(df, cols, spacing=1, crs="epsg:2393"):
             else:
                 gridder = vd.ScipyGridder(method="nearest").fit(filter_coords, filter_data)
             grid = gridder.grid(coordinates=grid_coords, data_names=colname)
-            grid = vd.distance_mask(proj_coords, maxdist=5, grid=grid)
+            grid = vd.distance_mask(proj_coords, maxdist=maxdist, grid=grid)
             if i == 0:
                 idata = grid.copy()
             else:
