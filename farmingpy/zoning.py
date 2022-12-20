@@ -7,7 +7,7 @@ import rasterio.features
 from shapely.geometry import shape
 import geopandas as gpd
 
-def rasterize(df, cols, spacing=1, maxdist=5, crs="epsg:2393"):
+def rasterize(df, cols, spacing=1, maxdist=5, crs="epsg:3067"):
         transformer = pyproj.Transformer.from_crs("epsg:4326", crs, always_xy=True)
         proj_coords = transformer.transform(df.longitude, df.latitude)
         reducer = vd.BlockReduce(np.median, spacing=spacing)

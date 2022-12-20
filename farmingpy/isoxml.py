@@ -17,21 +17,34 @@ import ISOXML
 class TimeLogData(object):
 
     def __init__(self, taskfile):
-        self.load(taskfile)
-        self.farm = self._timelog_data[0].farm
-        self.field = self._timelog_data[0].field
-        self.taskname = self._timelog_data[0].taskname
-        self.devices = list(self._timelog_data[0].devices)
-        self.products = dict(self._timelog_data[0].products)
+        """Read ISOBUS time log data
+
+        Parameters
+        ----------
+        taskfile
+            Path to TASKDATA.XML of unzipped task file.
+        """
+        self._load(taskfile)
+        self.farm = self._timelog_data[0].farm #: Farm name
+        self.field = self._timelog_data[0].field #: Field name
+        self.taskname = self._timelog_data[0].taskname #: Task name
+        self.devices = list(self._timelog_data[0].devices) #: List of devices
+        self.products = dict(self._timelog_data[0].products) #: Dictionary of products
         self._rates = None
         self._data = None
 
-    def load(self, taskfile):
+    def _load(self, taskfile):
         # Call C# library to read data
         self._timelog_data = ISOXML.TimeLogReader.ReadTaskFile(taskfile)
 
     @property
     def headers(self):
+        """Device data DDIs, DETs and descriptions
+
+        Returns
+        -------
+            Dataframe
+        """
         det = []
         detno = []
         dpd = []
@@ -66,6 +79,17 @@ class TimeLogData(object):
         return df
 
     def data(self, geo=False):
+        """Get dataframe with all parsed data
+
+        Parameters
+        ----------
+        geo, optional
+            If True return GeoDataFrame otherwise return DataFrame
+
+        Returns
+        -------
+            DataFrame or GeoDataFrame
+        """
         #if self._data is not None:
         #    return self._data
         df = pd.concat([self._tlg_to_dataframe(tlg) for tlg in self._timelog_data])
@@ -87,8 +111,19 @@ class TimeLogData(object):
         df = self._convert_columns(df)
         return df
 
-    """Read only application rate columns"""
     def rates(self, geo=False):
+        """Get only application rate (DDI=7) and working state (DDI=141) columns.
+
+        Parameters
+        ----------
+        geo, optional
+            If True return GeoDataFrame otherwise return DataFrame
+    
+        Returns
+        -------
+            DataFrame or GeoDataFrame
+        """
+        
         #if self._rates is not None:
         #    return self._rates
         df = pd.concat([self._rates_to_dataframe(tlg) for tlg in self._timelog_data])
@@ -126,7 +161,22 @@ class TimeLogData(object):
         df = self._convert_columns(df)
         return df
 
-    def rasterize_rates(self, cols=None, spacing=1, crs="epsg:2393"):
+    def rasterize_rates(self, cols=None, spacing=1, crs="epsg:3067"):
+        """Rasterize application rate columns
+
+        Parameters
+        ----------
+        cols, optional
+            Column names to rasterize, by default use all columns
+        spacing, optional
+            Spacing in meters
+        crs, optional
+            crs, by default "epsg:3067"
+
+        Returns
+        -------
+            _description_
+        """
         if cols == None:
             cols = sorted(self.products.keys())
         rates = self.rates()
