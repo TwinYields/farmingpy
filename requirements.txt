@@ -7,3 +7,5 @@ verde
 pyproj
 rasterio
 shapely
+eo-learn-io
+netcdf4
