@@ -1,1 +1,1 @@
-from .sentinel import S2SentinelHub
+from .sentinel import *
