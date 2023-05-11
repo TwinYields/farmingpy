@@ -61,6 +61,8 @@ class APSIMX():
                 copy_path = out_path
             shutil.copy(apsimx_file, copy_path)
             pathlib.Path(f"{name}.db").unlink(missing_ok=True)
+            pathlib.Path(f"{name}.db-shm").unlink(missing_ok=True)
+            pathlib.Path(f"{name}.db-wal").unlink(missing_ok=True)
             self.path = copy_path
         else:
             self.path = apsimx_file
@@ -79,6 +81,12 @@ class APSIMX():
 
     def _load(self, path):
         self._Simulation = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False)
+        # This is needed for APSIM ~5/2023, hacky attempt to also support old version
+        # TODO catch errors etc.
+        try:
+            self._Simulation = self._Simulation.get_NewModel()
+        except:
+            pass
         self.simulations = list(self._Simulation.FindAllChildren[Models.Core.Simulation]())
         self.py_simulations = [Simulation(s) for s in self.simulations]
         self.datastore = self._Simulation.FindChild[Models.Storage.DataStore]().FileName
@@ -142,8 +150,10 @@ class APSIMX():
             self.harvest_date = None
 
     def _read_results(self):
-        df = pd.read_sql_table("Report", "sqlite:///" + self.datastore)
+        #df = pd.read_sql_table("Report", "sqlite:///" + self.datastore) # errors with datetime since 5/2023
+        df = pd.read_sql_query("select * from Report", "sqlite:///" + self.datastore)
         df = df.rename(mapper=lambda x: x.replace(".", ""), axis=1)
+        df["ClockToday"] = [pd.Timestamp(t) for t in df.ClockToday]
         return df
 
     """Convert cultivar command to dict"""
@@ -155,7 +165,7 @@ class APSIMX():
                 p, v = c.split("=")
                 params[p.strip()] = v.strip()
         return params
-    
+
     def update_cultivar(self, parameters, simulations=None, clear=False):
         """Update cultivar parameters
 
@@ -201,7 +211,7 @@ class APSIMX():
         Parameters
         ----------
         management
-            Parameter = value dictionary of management paramaters to update. Call 
+            Parameter = value dictionary of management paramaters to update. Call
             `show_management` to see current values.
         simulations, optional
             List of simulation names to update, if `None` update all simulations.
@@ -401,7 +411,7 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` update all simulations
         """
-        
+
         for sim in self._find_simulations(simulations):
             psoil = sim.FindDescendant[Physical]()
             psoil.SAT = sat
@@ -418,7 +428,7 @@ class APSIMX():
         -------
             Array of SAT values
         """
-        
+
         psoil = self._find_physical_soil(simulation)
         return np.array(psoil.SAT)
 
@@ -461,7 +471,7 @@ class APSIMX():
         -------
             Array of values
         """
-        
+
         psoil = self._find_physical_soil(simulation)
         sc = psoil.FindChild[SoilCrop]()
         return np.array(sc.LL)
@@ -476,7 +486,7 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` update all simulations
         """
-        
+
         for sim in self._find_simulations(simulations):
             psoil = sim.FindDescendant[Physical]()
             sc = psoil.FindChild[SoilCrop]()
@@ -566,7 +576,7 @@ class APSIMX():
             List of simulation names to update, if `None` update all simulations
         """
 
-        
+
         self._set_initial_values("Urea", values, simulations)
 
 
