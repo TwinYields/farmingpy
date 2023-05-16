@@ -14,6 +14,8 @@ import os
 import pathlib
 import shutil
 import datetime
+import warnings
+
 
 apsim_path = shutil.which("Models")
 if apsim_path is not None:
@@ -154,9 +156,11 @@ class APSIMX():
         #df = pd.read_sql_table("Report", "sqlite:///" + self.datastore) # errors with datetime since 5/2023
         df = pd.read_sql_query("select * from Report", "sqlite:///" + self.datastore)
         df = df.rename(mapper=lambda x: x.replace(".", ""), axis=1)
-        #print(df["ClockToday"].head())
-        #df["ClockToday"] = [pd.Timestamp(t) for t in df.ClockToday]
-        df["ClockToday"] = [datetime.datetime.strptime(t, "%Y-%m-%d %H:%M:%S") for t in df.ClockToday]
+        try:
+            # ClockToday has . delimiters on Mac
+            df["ClockToday"] = [datetime.datetime.strptime(t.replace(".", ":"), "%Y-%m-%d %H:%M:%S") for t in df.ClockToday]
+        except:
+            warnings.warn("Unable to parse time format, 'ClockToday' column is still a string")
         return df
 
     """Convert cultivar command to dict"""
