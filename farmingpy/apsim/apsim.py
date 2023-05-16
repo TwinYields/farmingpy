@@ -12,8 +12,9 @@ import pandas as pd
 import shutil
 import os
 import pathlib
-
 import shutil
+import datetime
+
 apsim_path = shutil.which("Models")
 if apsim_path is not None:
     apsim_path = os.path.split(os.path.realpath(apsim_path))[0]
@@ -153,7 +154,9 @@ class APSIMX():
         #df = pd.read_sql_table("Report", "sqlite:///" + self.datastore) # errors with datetime since 5/2023
         df = pd.read_sql_query("select * from Report", "sqlite:///" + self.datastore)
         df = df.rename(mapper=lambda x: x.replace(".", ""), axis=1)
-        df["ClockToday"] = [pd.Timestamp(t) for t in df.ClockToday]
+        #print(df["ClockToday"].head())
+        #df["ClockToday"] = [pd.Timestamp(t) for t in df.ClockToday]
+        df["ClockToday"] = [datetime.datetime.strptime(t, "%Y-%m-%d %H:%M:%S") for t in df.ClockToday]
         return df
 
     """Convert cultivar command to dict"""
