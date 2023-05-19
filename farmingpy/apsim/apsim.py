@@ -40,6 +40,7 @@ from Models.PMF import Cultivar
 from Models.Core.ApsimFile import FileFormat
 from Models.Climate import Weather
 from Models.Soils import Soil, Physical, SoilCrop
+from Models.AgPasture import PastureSpecies
 
 class APSIMX():
     """Modify and run Apsim next generation simulation models."""
@@ -90,7 +91,11 @@ class APSIMX():
             pass
 
     def _load(self, path):
-        self._Simulation = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, True)
+        # When the last argument (init in another thread) is False,
+        # models with errors fail to load. More elegant solution would be handle
+        # errors like the GUI does.
+        # If loading fails the the model has errors -> Use ApsimNG user interface to debug
+        self._Simulation = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False)
         # This is needed for APSIM ~5/2023, hacky attempt to also support old version
         # TODO catch errors etc.
         try:
@@ -272,6 +277,27 @@ class APSIMX():
                 res.append(out)
         return pd.DataFrame(res)
 
+    def get_agpasture_crops(self, simulations = None):
+        """Get AgPasture crops from simulations.
+
+        Parameters
+        ----------
+        start_date, optional
+            Start date as string, by default `None`
+        end_date, optional
+            End date as string, by default `None`
+        simulations, optional
+            List of simulation names to update, if `None` get from all simulations
+
+        Returns
+        ----
+            List of PastureSpecies (C# class exposed trough pythonnet)
+        """
+        species = []
+        for sim in self._find_simulations(simulations):
+            species += sim.FindAllDescendants[PastureSpecies]()
+        return species
+
     def set_dates(self, start_date=None, end_date=None, simulations = None):
         """Set simulation dates
 
@@ -324,8 +350,9 @@ class APSIMX():
             List of simulation names to update, if `None` update all simulations
         """
         for sim in self._find_simulations(simulations):
-            weather = sim.FindChild[Weather]()
-            weather.FileName = weather_file
+            weathers = sim.FindAllDescendants[Weather]()
+            for weather in weathers:
+                weather.FileName = weather_file
 
     def show_weather(self):
         """Show weather file for all simulations"""
