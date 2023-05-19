@@ -78,12 +78,19 @@ class APSIMX():
         self.harvest_date = None
 
         self._load(self.path)
+
         plant = self._Simulation.FindDescendant[Models.Core.Zone]().Plants[0]
         cultivar = plant.FindChild[Cultivar]()
-        self.cultivar_command = self._cultivar_params(cultivar)
+
+        # TODO fix this to work with the sown cultivar and
+        # accept simulation name as argument
+        try:
+            self.cultivar_command = self._cultivar_params(cultivar)
+        except:
+            pass
 
     def _load(self, path):
-        self._Simulation = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False)
+        self._Simulation = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, True)
         # This is needed for APSIM ~5/2023, hacky attempt to also support old version
         # TODO catch errors etc.
         try:
@@ -281,10 +288,30 @@ class APSIMX():
             clock = sim.FindChild[Models.Clock]()
             if start_date is not None:
                 #clock.End = DateTime(start_time.year, start_time.month, start_time.day, 0, 0, 0)
-                clock.End = DateTime.Parse(start_date)
+                clock.Start = DateTime.Parse(start_date)
             if end_date is not None:
                 #clock.End = DateTime(end_time.year, end_time.month, end_time.day, 0, 0, 0)
                 clock.End = DateTime.Parse(end_date)
+
+    def get_dates(self, simulations = None):
+        """Get simulation dates
+        Parameters
+        ----------
+        simulations, optional
+            List of simulation names to get, if `None` get all simulations
+        Returns
+        -------
+            Dictionary of simulation names with dates
+        """
+        dates =  {}
+        for sim in self._find_simulations(simulations):
+            clock = sim.FindChild[Models.Clock]()
+            st = clock.Start
+            et = clock.End
+            dates[sim.Name] = {}
+            dates[sim.Name]["start"] = datetime.date(st.Year, st.Month, st.Day)
+            dates[sim.Name]["end"] = datetime.date(et.Year, et.Month, et.Day)
+        return dates
 
     def set_weather(self, weather_file, simulations = None):
         """Set simulation weather file
