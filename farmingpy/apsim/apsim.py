@@ -3,8 +3,16 @@ Interface to APSIM simulation models using Python.NET.
 """
 
 import pythonnet
-if pythonnet.get_runtime_info() is None:
-    pythonnet.load("coreclr")
+
+# Prefer dotnet
+try:
+    if pythonnet.get_runtime_info() is None:
+        pythonnet.load("coreclr")
+except:
+    print("dotnet not found loading alternate runtime")
+    print("Using: pythonnet.get_runtime_info()")
+    pythonnet.load()
+
 import clr
 import sys
 import numpy as np
@@ -16,12 +24,17 @@ import shutil
 import datetime
 import warnings
 
+# Try to load from pythonpath and only then look for Model.exe
+try:
+    clr.AddReference("Models")
+except:
+    print("Looking for APSIM")
+    apsim_path = shutil.which("Models")
+    if apsim_path is not None:
+        apsim_path = os.path.split(os.path.realpath(apsim_path))[0]
+        sys.path.append(apsim_path)
+    clr.AddReference("Models")
 
-apsim_path = shutil.which("Models")
-if apsim_path is not None:
-    apsim_path = os.path.split(os.path.realpath(apsim_path))[0]
-    sys.path.append(apsim_path)
-clr.AddReference("Models")
 clr.AddReference("System")
 
 # C# imports
