@@ -15,20 +15,32 @@ pip install git+https://github.com/TwinYields/farmingpy.git
 
 ## APSIM interface
 
-In order to use APSIM interface from `farmingpy.apsim` you need to install APSIM and add the directory containing the Models executable to path (to find the right .dll files). On Windows you can install the APSIM using the installer or from source.
+In order to use APSIM interface from `farmingpy.apsim` you need to install APSIM and add the directory containing the Models executable to path or python path (to find the right .dll files). You can use the APSIM installer or build from source.
 
-On Linux you can use the following to build APSIM:
+### Source build
 
 ```bash
 git clone --depth 1 https://github.com/APSIMInitiative/ApsimX.git
+```
+
+On Linux or Mac you can use the following to build APSIM:
+
+```
 dotnet build -o ~/.local/lib/apsimx -c Release ApsimX/Models/Models.csproj
 ```
 
-And add the build location to Pythonpath:
+And add the build location to Pythonpath (add this to shell config e.g. `.bashrc` to make it permanent):
 
 ```bash
 export PYTHONPATH=~/.local/lib/apsimx
 ```
+
+Build on Windows, and add the output directory to path or Python path
+
+```
+dotnet build -o %USERPROFILE%\apsimx -c Release ApsimX/Models/Models.csproj
+```
+
 
 
 ## Usage:
