@@ -85,7 +85,7 @@ class APSIMX():
             self.path = apsimx_file
 
         self.results = None #: Simulation results as dataframe
-        self._Simulation = None #TopLevel Simulations object
+        self.Model = None #TopLevel Simulations object
         #self.simulations = None # List of Simulation object
         self.py_simulations = None
         self.datastore = None
@@ -93,7 +93,7 @@ class APSIMX():
 
         self._load(self.path)
 
-        plant = self._Simulation.FindDescendant[Models.Core.Zone]().Plants[0]
+        plant = self.Model.FindDescendant[Models.Core.Zone]().Plants[0]
         cultivar = plant.FindChild[Cultivar]()
 
         # TODO fix this to work with the sown cultivar and
@@ -105,24 +105,28 @@ class APSIMX():
 
     @property
     def simulations(self):
-        return list(self._Simulation.FindAllChildren[Models.Core.Simulation]())
+        return list(self.Model.FindAllChildren[Models.Core.Simulation]())
 
     def _load(self, path):
         # When the last argument (init in another thread) is False,
         # models with errors fail to load. More elegant solution would be handle
         # errors like the GUI does.
         # If loading fails the the model has errors -> Use ApsimNG user interface to debug
-        self._Simulation = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False)
+        self.Model = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False)
         # This is needed for APSIM ~5/2023, hacky attempt to also support old version
         # TODO catch errors etc.
         try:
-            self._Simulation = self._Simulation.get_NewModel()
+            self.Model = self.Model.get_NewModel()
         except:
             pass
         #self.simulations = list(self._Simulation.FindAllChildren[Models.Core.Simulation]())
         self.py_simulations = [Simulation(s) for s in self.simulations]
-        self.datastore = self._Simulation.FindChild[Models.Storage.DataStore]().FileName
-        self._DataStore = self._Simulation.FindChild[Models.Storage.DataStore]()
+        self.datastore = self.Model.FindChild[Models.Storage.DataStore]().FileName
+        self._DataStore = self.Model.FindChild[Models.Storage.DataStore]()
+
+    def _reload(self):
+        self.save()
+        self._load(self.path)
 
     def save(self, out_path=None):
         """Save the model
@@ -134,7 +138,7 @@ class APSIMX():
         """
         if out_path is None:
             out_path = self.path
-        json = Models.Core.ApsimFile.FileFormat.WriteToString(self._Simulation)
+        json = Models.Core.ApsimFile.FileFormat.WriteToString(self.Model)
         with open(out_path, "w") as f:
             f.write(json)
 
@@ -162,7 +166,7 @@ class APSIMX():
             pathlib.Path(self._DataStore.FileName).unlink(missing_ok=True)
             self._DataStore.Open()
         if simulations is None:
-            r = Models.Core.Run.Runner(self._Simulation, True, False, False, None, runtype)
+            r = Models.Core.Run.Runner(self.Model, True, False, False, None, runtype)
         else:
             sims = self._find_simulations(simulations)
             # Runner needs C# list
@@ -199,9 +203,8 @@ class APSIMX():
         #clone_zone = clone_sim.FindChild[Models.Core.Zone]()
         #clone_zone.Name = target
 
-        self._Simulation.Children.Add(clone_sim)
-        self.save()
-        self._load(self.path)
+        self.Model.Children.Add(clone_sim)
+        self._reload()
 
     def remove_simulation(self, simulation):
         """Remove a simulation from the model
@@ -213,7 +216,7 @@ class APSIMX():
         """
 
         sim = self._find_simulation(simulation)
-        self._Simulation.Children.Remove(sim)
+        self.Model.Children.Remove(sim)
         self.save()
         self._load(self.path)
 
@@ -446,7 +449,7 @@ class APSIMX():
 
     def show_weather(self):
         """Show weather file for all simulations"""
-        for weather in self._Simulation.FindAllDescendants[Weather]():
+        for weather in self.Model.FindAllDescendants[Weather]():
             print(weather.FileName)
 
     def set_report(self, report, simulations = None):
