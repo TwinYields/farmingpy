@@ -86,7 +86,7 @@ class APSIMX():
 
         self.results = None #: Simulation results as dataframe
         self._Simulation = None #TopLevel Simulations object
-        self.simulations = None # List of Simulation object
+        #self.simulations = None # List of Simulation object
         self.py_simulations = None
         self.datastore = None
         self.harvest_date = None
@@ -103,6 +103,10 @@ class APSIMX():
         except:
             pass
 
+    @property
+    def simulations(self):
+        return list(self._Simulation.FindAllChildren[Models.Core.Simulation]())
+
     def _load(self, path):
         # When the last argument (init in another thread) is False,
         # models with errors fail to load. More elegant solution would be handle
@@ -115,7 +119,7 @@ class APSIMX():
             self._Simulation = self._Simulation.get_NewModel()
         except:
             pass
-        self.simulations = list(self._Simulation.FindAllChildren[Models.Core.Simulation]())
+        #self.simulations = list(self._Simulation.FindAllChildren[Models.Core.Simulation]())
         self.py_simulations = [Simulation(s) for s in self.simulations]
         self.datastore = self._Simulation.FindChild[Models.Storage.DataStore]().FileName
         self._DataStore = self._Simulation.FindChild[Models.Storage.DataStore]()
@@ -176,6 +180,79 @@ class APSIMX():
                                     ["Zone", "ClockToday"]]
         except:
             self.harvest_date = None
+
+    def clone_simulation(self, target, simulation=None):
+        """Clone a simulation and add it to Model
+
+        Parameters
+        ----------
+        target
+            target simulation name
+        simulation, optional
+            Simulation name to be cloned, of None clone the first simulation in model
+        """
+
+        sim = self._find_simulation(simulation)
+
+        clone_sim = Models.Core.Apsim.Clone(sim)
+        clone_sim.Name = target
+        #clone_zone = clone_sim.FindChild[Models.Core.Zone]()
+        #clone_zone.Name = target
+
+        self._Simulation.Children.Add(clone_sim)
+        self.save()
+        self._load(self.path)
+
+    def remove_simulation(self, simulation):
+        """Remove a simulation from the model
+
+            Parameters
+            ----------
+            simulation
+                The name of the simulation to remove
+        """
+
+        sim = self._find_simulation(simulation)
+        self._Simulation.Children.Remove(sim)
+        self.save()
+        self._load(self.path)
+
+    def clone_zone(self, target, zone, simulation=None):
+        """Clone a zone and add it to Model
+            Parameters
+            ----------
+            target
+                target simulation name
+            zone
+                Name of the zone to clone
+            simulation, optional
+                Simulation name to be cloned, of None clone the first simulation in model
+        """
+
+        sim = self._find_simulation(simulation)
+        zone = sim.FindChild[Models.Core.Zone](zone)
+        clone_zone = Models.Core.Apsim.Clone(zone)
+        clone_zone.Name = target
+        sim.Children.Add(clone_zone)
+        self.save()
+        self._load(self.path)
+
+    def find_zones(self, simulation):
+        """Find zones from a simulation
+
+            Parameters
+            ----------
+            simulation
+                simulation name
+
+            Returns
+            -------
+                list of zones as APSIM Models.Core.Zone objects
+        """
+
+        sim = self._find_simulation(simulation)
+        zones = sim.FindAllDescendants[Models.Core.Zone]()
+        return list(zones)
 
     def _read_results(self):
         #df = pd.read_sql_table("Report", "sqlite:///" + self.datastore) # errors with datetime since 5/2023
