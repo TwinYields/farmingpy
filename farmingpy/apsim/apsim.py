@@ -404,13 +404,13 @@ class APSIMX():
             List of simulation names to update, if `None` update all simulations
         """
         for sim in self._find_simulations(simulations):
-            clock = sim.FindChild[Models.Clock]()
+            clock = sim.FindChild[Models.IClock]()
             if start_date is not None:
                 #clock.End = DateTime(start_time.year, start_time.month, start_time.day, 0, 0, 0)
-                clock.Start = DateTime.Parse(start_date)
+                clock.StartDate = DateTime.Parse(start_date)
             if end_date is not None:
                 #clock.End = DateTime(end_time.year, end_time.month, end_time.day, 0, 0, 0)
-                clock.End = DateTime.Parse(end_date)
+                clock.EndDate = DateTime.Parse(end_date)
 
     def get_dates(self, simulations = None):
         """Get simulation dates
@@ -424,9 +424,9 @@ class APSIMX():
         """
         dates =  {}
         for sim in self._find_simulations(simulations):
-            clock = sim.FindChild[Models.Clock]()
-            st = clock.Start
-            et = clock.End
+            clock = sim.FindChild[Models.IClock]()
+            st = clock.StartDate
+            et = clock.EndDate
             dates[sim.Name] = {}
             dates[sim.Name]["start"] = datetime.date(st.Year, st.Month, st.Day)
             dates[sim.Name]["end"] = datetime.date(et.Year, et.Month, et.Day)
