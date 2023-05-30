@@ -546,13 +546,19 @@ class APSIMX():
             psoil.DUL = dul
             self._fix_crop_ll(sim.Name)
 
-    # Make sure that crop ll is below DUL in all layers
+    # Make sure that crop ll is below and above LL15 DUL in all layers
     def _fix_crop_ll(self, simulation):
-        tmp_cll = self.get_crop_ll()
+        tmp_cll = self.get_crop_ll(simulation)
         dul = self.get_dul(simulation)
+        ll15 = self.get_ll15(simulation)
         for j in range(len(tmp_cll)):
             if tmp_cll[j] > dul[j]:
                 tmp_cll[j] = dul[j] - 0.01
+
+        for j in range(len(tmp_cll)):
+            if tmp_cll[j] < ll15[j]:
+                tmp_cll[j] = ll15[j]
+
         self.set_crop_ll(tmp_cll, simulation)
 
     def set_sat(self, sat, simulations=None):
@@ -613,6 +619,7 @@ class APSIMX():
         for sim in self._find_simulations(simulations):
             psoil = sim.FindDescendant[Physical]()
             psoil.LL15 = ll15
+            self._fix_crop_ll(sim.Name)
 
     def get_crop_ll(self, simulation=None):
         """Get crop lower limit
