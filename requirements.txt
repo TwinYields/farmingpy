@@ -12,3 +12,4 @@ shapely
 eo-learn-io
 netcdf4
 sqlalchemy
+nlopt
