@@ -29,6 +29,12 @@ On Linux or Mac you can use the following to build APSIM:
 dotnet build -o ~/.local/lib/apsimx -c Release ApsimX/Models/Models.csproj
 ```
 
+On Ubuntu make sure you have sqlite installed:
+
+```
+sudo apt install libsqlite3-dev
+```
+
 And add the build location to Pythonpath (add this to shell config e.g. `.bashrc` to make it permanent):
 
 ```bash
