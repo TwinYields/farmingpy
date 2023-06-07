@@ -9,7 +9,7 @@ import nlopt
 class OptimizerBase(object):
 
     def __init__(self, model, params, obs_yield, obs_lai, harvest_date, zone_names = None, multithread = True):
-       
+
         obs_yield.rename(str.lower, axis=1, inplace=True)
         obs_lai.rename(str.lower, axis=1, inplace=True)
 
@@ -42,10 +42,11 @@ class OptimizerBase(object):
             print(f"\tIteration {self._iter}, cost: LAI {clai:.3f} Yield {cyield:.3f}, Harvest {charvest:.3f}, Total {cost:.3f}")
 
     def _merge_sim_obs(self):
-        df = self.model.results
+        df = self.model.results.copy()
         df.rename(str.lower, axis=1, inplace=True)
         df["sim_lai"] = df["lai"]
-        sim_lai = df[["clocktoday", "zone", "sim_lai"]]
+        sim_lai = df[["clocktoday", "zone", "sim_lai"]].copy()
+        sim_lai["clocktoday"] = sim_lai.clocktoday.dt.floor("D")
         sim_lai = self.obs_lai.merge(sim_lai, how="left")
 
         sim_yield = df[["zone", "yield", "lai"]].groupby("zone", as_index=False).agg(np.max)
@@ -140,7 +141,7 @@ class SoilOptimizer(OptimizerBase):
         """Optimize soil paramters."""
 
         def __init__(self, model, params, obs_yield, obs_lai, harvest_date, zone_names=None, multithread=True):
-            
+
             """Optimize model parameters
 
             Parameters
@@ -148,9 +149,9 @@ class SoilOptimizer(OptimizerBase):
             model
                 APSIMX object
             params
-                Dictionary of soil parameters to optimize with allowed ranges. 
-                The range indicates difference to original values. 
-                e.g. ``{"ll15" : (-0.01, 0.05), "dul" : (0.0, -0.05)}``. Supported parameters are: 
+                Dictionary of soil parameters to optimize with allowed ranges.
+                The range indicates difference to original values.
+                e.g. ``{"ll15" : (-0.01, 0.05), "dul" : (0.0, -0.05)}``. Supported parameters are:
                 ``ll15, dul, no3, nh4, urea``. The same change is applied to all soil layers.
             obs_yield
                 Dataframe with observed yield for each zone.
@@ -165,7 +166,7 @@ class SoilOptimizer(OptimizerBase):
             """
 
             super(SoilOptimizer, self).__init__(model, params, obs_yield, obs_lai, harvest_date, zone_names, multithread)
-            
+
 
             #Save starting values
             self.ll15 = self.model.get_ll15().copy()
@@ -200,7 +201,7 @@ class SoilOptimizer(OptimizerBase):
 
 class PhenologyOptimizer(OptimizerBase):
     """Optimize cultivar parameters."""
-    
+
     def __init__(self, model, params, obs_yield, obs_lai, harvest_date, zone_names=None, multithread=True):
         """Optimize model parameters
 
@@ -209,7 +210,7 @@ class PhenologyOptimizer(OptimizerBase):
         model
             APSIMX object
         params
-            Dictionary of cultivar parameters to optimize with allowed ranges. 
+            Dictionary of cultivar parameters to optimize with allowed ranges.
         obs_yield
             Dataframe with observed yield for each zone.
         obs_lai
@@ -229,5 +230,5 @@ class PhenologyOptimizer(OptimizerBase):
 
     def _print_optimized(self):
         print(str.join("\n", [f"{self.optvars[i]} = {self.opt_values[i]:.2f}" for i in range(self.N)]))
-    
+
 
