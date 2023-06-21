@@ -168,7 +168,7 @@ class APSIMX():
         if simulations is None:
             r = Models.Core.Run.Runner(self.Model, True, False, False, None, runtype)
         else:
-            sims = self._find_simulations(simulations)
+            sims = self.find_simulations(simulations)
             # Runner needs C# list
             cs_sims = List[Models.Core.Simulation]()
             for s in sims:
@@ -290,7 +290,7 @@ class APSIMX():
         clear, optional
             If `True` remove all existing parameters, by default `False`.
         """
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             zone = sim.FindChild[Models.Core.Zone]()
             cultivar = zone.Plants[0].FindChild[Models.PMF.Cultivar]()
             if clear:
@@ -309,7 +309,7 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` show all simulations.
         """
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             zone = sim.FindChild[Models.Core.Zone]()
             print("Zone:", zone.Name)
             for action in zone.FindAllChildren[Models.Manager]():
@@ -330,7 +330,7 @@ class APSIMX():
         reload, optional
             _description_, by default True
         """
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             zone = sim.FindChild[Models.Core.Zone]()
             for action in zone.FindAllChildren[Models.Manager]():
                 if action.Name in management:
@@ -387,7 +387,7 @@ class APSIMX():
             List of PastureSpecies (C# class exposed trough pythonnet)
         """
         species = []
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             species += sim.FindAllDescendants[PastureSpecies]()
         return species
 
@@ -403,7 +403,7 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` update all simulations
         """
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             clock = sim.FindChild[Models.IClock]()
             if start_date is not None:
                 #clock.End = DateTime(start_time.year, start_time.month, start_time.day, 0, 0, 0)
@@ -423,7 +423,7 @@ class APSIMX():
             Dictionary of simulation names with dates
         """
         dates =  {}
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             clock = sim.FindChild[Models.IClock]()
             st = clock.StartDate
             et = clock.EndDate
@@ -442,7 +442,7 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` update all simulations
         """
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             weathers = sim.FindAllDescendants[Weather]()
             for weather in weathers:
                 weather.FileName = weather_file
@@ -462,7 +462,7 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` update all simulations
         """
-        simulations = self._find_simulations(simulations)
+        simulations = self.find_simulations(simulations)
         for sim in simulations:
             r = sim.FindDescendant[Models.Report]()
             r.set_VariableNames(report.strip().splitlines())
@@ -482,14 +482,35 @@ class APSIMX():
         report = list(sim.FindAllDescendants[Models.Report]())[0]
         return list(report.get_VariableNames())
 
-    def _find_physical_soil(self, simulation = None):
+    def find_physical_soil(self, simulation = None):
+        """Find physical soil
+
+        Parameters
+        ----------
+        simulation, optional
+            Simulation name, if `None` use the first simulation.
+        Returns
+        -------
+            APSIM Models.Soils.Physical object
+        """
+
         sim = self._find_simulation(simulation)
         soil = sim.FindDescendant[Soil]()
         psoil = soil.FindDescendant[Physical]()
         return psoil
 
     # Find a list of simulations by name
-    def _find_simulations(self, simulations = None):
+    def find_simulations(self, simulations = None):
+        """Find simulations by name
+        Parameters
+        ----------
+        simulations, optional
+            List of simulation names to find, if `None` return all simulations
+        Returns
+        -------
+            list of APSIM Models.Core.Simulation objects
+        """
+
         if simulations is None:
             return self.simulations
         if type(simulations) == str:
@@ -528,7 +549,7 @@ class APSIMX():
         -------
             Array of DUL values
         """
-        psoil = self._find_physical_soil(simulation)
+        psoil = self.find_physical_soil(simulation)
         return np.array(psoil.DUL)
 
     def set_dul(self, dul, simulations=None):
@@ -541,7 +562,7 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` update all simulations
         """
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             psoil = sim.FindDescendant[Physical]()
             psoil.DUL = dul
             self._fix_crop_ll(sim.Name)
@@ -572,7 +593,7 @@ class APSIMX():
             List of simulation names to update, if `None` update all simulations
         """
 
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             psoil = sim.FindDescendant[Physical]()
             psoil.SAT = sat
             psoil.SW = psoil.DUL
@@ -589,7 +610,7 @@ class APSIMX():
             Array of SAT values
         """
 
-        psoil = self._find_physical_soil(simulation)
+        psoil = self.find_physical_soil(simulation)
         return np.array(psoil.SAT)
 
     def get_ll15(self, simulation=None):
@@ -603,7 +624,7 @@ class APSIMX():
         -------
             Array of LL15 values
         """
-        psoil = self._find_physical_soil(simulation)
+        psoil = self.find_physical_soil(simulation)
         return np.array(psoil.LL15)
 
     def set_ll15(self, ll15, simulations=None):
@@ -616,10 +637,69 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` update all simulations
         """
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             psoil = sim.FindDescendant[Physical]()
             psoil.LL15 = ll15
             self._fix_crop_ll(sim.Name)
+
+    def set_bd(self, bd, simulations=None):
+        """Set soil bulk density
+
+        Parameters
+        ----------
+        bd
+            Collection of values, has to be the same length as existing values.
+        simulations, optional
+            List of simulation names to update, if `None` update all simulations
+        """
+
+        for sim in self.find_simulations(simulations):
+            psoil = sim.FindDescendant[Physical]()
+            psoil.BD = bd
+
+    def get_bd(self, simulation=None):
+        """Get soil bulk density
+
+        Parameters
+        ----------
+        simulation, optional
+            Simulation name.
+        Returns
+        -------
+            Array of BD values
+        """
+        psoil = self.find_physical_soil(simulation)
+        return np.array(psoil.BD)
+
+    def set_swcon(self, swcon, simulations=None):
+        """Set soil water conductivity (SWCON) constant for each soil layer.
+
+        Parameters
+        ----------
+        swcon
+            Collection of values, has to be the same length as existing values.
+        simulations, optional
+            List of simulation names to update, if `None` update all simulations
+        """
+
+        for sim in self.find_simulations(simulations):
+            wb = sim.FindDescendant[Models.WaterModel.WaterBalance]()
+            wb.SWCON = swcon
+
+    def get_swcon(self, simulation=None):
+        """Get soil water conductivity (SWCON) constant for each soil layer.
+
+        Parameters
+        ----------
+        simulation, optional
+            Simulation name.
+        Returns
+        -------
+            Array of SWCON values
+        """
+        sim = self._find_simulation(simulation)
+        wb = sim.FindDescendant[Models.WaterModel.WaterBalance]()
+        return np.array(wb.SWCON)
 
     def get_crop_ll(self, simulation=None):
         """Get crop lower limit
@@ -633,7 +713,7 @@ class APSIMX():
             Array of values
         """
 
-        psoil = self._find_physical_soil(simulation)
+        psoil = self.find_physical_soil(simulation)
         sc = psoil.FindChild[SoilCrop]()
         return np.array(sc.LL)
 
@@ -648,7 +728,7 @@ class APSIMX():
             List of simulation names to update, if `None` update all simulations
         """
 
-        for sim in self._find_simulations(simulations):
+        for sim in self.find_simulations(simulations):
             psoil = sim.FindDescendant[Physical]()
             sc = psoil.FindChild[SoilCrop]()
             sc.LL = ll
@@ -668,11 +748,15 @@ class APSIMX():
         dul = self.get_dul(simulation)
         ll15 = self.get_ll15(simulation)
         cll = self.get_crop_ll(simulation)
-        psoil = self._find_physical_soil(simulation)
+        psoil = self.find_physical_soil(simulation)
         depth = psoil.Depth
+
+
         return pd.DataFrame({"Depth" : depth, "LL15" : ll15, "DUL" : dul, "SAT" : sat, "Crop LL" : cll,
-                    "Initial NO3" : self.get_initial_no3(),
-                    "Initial NH4" : self.get_initial_nh4()})
+                    "Bulk density": self.get_bd(simulation),
+                    "SWCON" : self.get_swcon(simulation),
+                    "Initial NO3" : self.get_initial_no3(simulation),
+                    "Initial NH4" : self.get_initial_nh4(simulation)})
 
     def _find_solute(self, solute, simulation=None):
         sim = self._find_simulation(simulation)
@@ -684,7 +768,7 @@ class APSIMX():
         return np.array(s.InitialValues)
 
     def _set_initial_values(self, name, values, simulations):
-        sims = self._find_simulations(simulations)
+        sims = self.find_simulations(simulations)
         for sim in sims:
             s = self._find_solute(name, sim.Name)
             s.InitialValues = values
@@ -739,7 +823,6 @@ class APSIMX():
 
 
         self._set_initial_values("Urea", values, simulations)
-
 
 class Simulation(object):
 
