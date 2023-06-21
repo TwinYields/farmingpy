@@ -62,6 +62,7 @@ class APSIMX():
         """
         Parameters
         ----------
+
         apsimx_file
             Path to .apsimx file
         copy, optional
@@ -222,6 +223,7 @@ class APSIMX():
 
     def clone_zone(self, target, zone, simulation=None):
         """Clone a zone and add it to Model
+
             Parameters
             ----------
             target
@@ -414,6 +416,7 @@ class APSIMX():
 
     def get_dates(self, simulations = None):
         """Get simulation dates
+
         Parameters
         ----------
         simulations, optional
@@ -502,6 +505,7 @@ class APSIMX():
     # Find a list of simulations by name
     def find_simulations(self, simulations = None):
         """Find simulations by name
+
         Parameters
         ----------
         simulations, optional
