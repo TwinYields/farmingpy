@@ -2,6 +2,7 @@
 Interface to APSIM simulation models using Python.NET.
 """
 
+from typing import Union
 import pythonnet
 
 # Prefer dotnet
@@ -54,45 +55,54 @@ from Models.Core.ApsimFile import FileFormat
 from Models.Climate import Weather
 from Models.Soils import Soil, Physical, SoilCrop
 from Models.AgPasture import PastureSpecies
+from Models.Core import Simulations
 
 class APSIMX():
     """Modify and run Apsim next generation simulation models."""
 
-    def __init__(self, apsimx_file, copy=True, out_path=None):
+    def __init__(self, model : Union[str, Simulations], copy=True, out_path=None):
         """
         Parameters
         ----------
 
-        apsimx_file
-            Path to .apsimx file
+        model
+            Path to .apsimx file or C# Models.Core.Simulations object
         copy, optional
             If `True` a copy of original simulation will be created on init, by default True.
         out_path, optional
             Path of modified simulation, if `None` will be set automatically.
         """
 
-        name, ext = os.path.splitext(apsimx_file)
-        if copy:
-            if out_path is None:
-                copy_path = f"{name}_py{ext}"
-            else:
-                copy_path = out_path
-            shutil.copy(apsimx_file, copy_path)
-            pathlib.Path(f"{name}.db").unlink(missing_ok=True)
-            pathlib.Path(f"{name}.db-shm").unlink(missing_ok=True)
-            pathlib.Path(f"{name}.db-wal").unlink(missing_ok=True)
-            self.path = copy_path
-        else:
-            self.path = apsimx_file
-
         self.results = None #: Simulation results as dataframe
         self.Model = None #TopLevel Simulations object
         #self.simulations = None # List of Simulation object
-        self.py_simulations = None
+        #self.py_simulations = None
         self.datastore = None
         self.harvest_date = None
 
-        self._load(self.path)
+
+        if type(model) == str:
+            apsimx_file = model
+            name, ext = os.path.splitext(apsimx_file)
+            if copy:
+                if out_path is None:
+                    copy_path = f"{name}_py{ext}"
+                else:
+                    copy_path = out_path
+                shutil.copy(apsimx_file, copy_path)
+                pathlib.Path(f"{name}.db").unlink(missing_ok=True)
+                pathlib.Path(f"{name}.db-shm").unlink(missing_ok=True)
+                pathlib.Path(f"{name}.db-wal").unlink(missing_ok=True)
+                self.path = copy_path
+            else:
+                self.path = apsimx_file
+
+            self._load(self.path)
+
+        elif type(model) == Simulations:
+            self.Model = model
+            self.datastore = self.Model.FindChild[Models.Storage.DataStore]().FileName
+            self._DataStore = self.Model.FindChild[Models.Storage.DataStore]()
 
         plant = self.Model.FindDescendant[Models.Core.Zone]().Plants[0]
         cultivar = plant.FindChild[Cultivar]()
@@ -121,7 +131,7 @@ class APSIMX():
         except:
             pass
         #self.simulations = list(self._Simulation.FindAllChildren[Models.Core.Simulation]())
-        self.py_simulations = [Simulation(s) for s in self.simulations]
+        #self.py_simulations = [Simulation(s) for s in self.simulations]
         self.datastore = self.Model.FindChild[Models.Storage.DataStore]().FileName
         self._DataStore = self.Model.FindChild[Models.Storage.DataStore]()
 
