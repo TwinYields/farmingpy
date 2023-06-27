@@ -18,14 +18,22 @@ class Report(object):
         ensemble
             Model ensemble used for reporting
         """
-
         self.en = ensemble
+        self.report_PMF = False
+        self.report_RG = False
+
         if self.en.Plants is not None:
             self.Plants = self.en.Plants
             self.Grains = self.en.Grains
             self.Leaves = self.en.Leaves
             self.Stems = self.en.Stems
             self.Spikes = self.en.Spikes
+            self.report_PMF = True
+
+        if self.en.AGPRyegrass is not None:
+            self.AGPRyegrass = self.en.AGPRyegrass
+            self.report_RG = True
+
         self.data = []
 
     @property
@@ -54,14 +62,21 @@ class Report(object):
         Called on each timestep in the ensemble, used to store
         simulated values.
         """
-        self.data.append({
-        "idx" : [idx for idx in range(self.en.N)],
-        "date" : [self.today for _ in range(self.en.N)],
-        "LAI" : [p.LAI for p in self.Plants],
-        "Yield" : [g.Wt*10 for g in self.Grains],
-        "Biomass" : [p.AboveGround.Wt for p in self.Plants]
-        })
-
+        if self.report_PMF:
+            self.data.append({
+                "idx" : [idx for idx in range(self.en.N)],
+                "date" : [self.today for _ in range(self.en.N)],
+                "LAI" : [p.LAI for p in self.Plants],
+                "Yield" : [g.Wt*10 for g in self.Grains],
+                "Biomass" : [p.AboveGround.Wt for p in self.Plants]
+            })
+        if self.report_RG:
+            self.data.append({
+                "idx" : [idx for idx in range(self.en.N)],
+                "date" : [self.today for _ in range(self.en.N)],
+                "LAI" : [p.LAI for p in self.AGPRyegrass],
+                "Biomass" : [p.AboveGround.Wt for p in self.AGPRyegrass],
+            })
 
 class APSIMXEnsemble(object):
     """Ensemble of APSIM simulation models.
@@ -107,6 +122,10 @@ class APSIMXEnsemble(object):
             self.Stems = [plant.FindDescendant[Models.PMF.Organs.GenericOrgan]("Stem") for plant in self.Plants]
             self.Spikes = [plant.FindDescendant[Models.PMF.Organs.GenericOrgan]("Spike") for plant in self.Plants]
 
+        ps = [s.FindDescendant[Models.AgPasture.PastureSpecies]() for s in self.en.Simulations]
+        self.AGPRyegrass = [rg for rg in ps if rg.Name=='AGPRyegrass']
+        if self.AGPRyegrass[0] is None:
+            self.AGPRyegrass = None
 
         self.models = [apsim.APSIMX(m) for m in self.Models]
         self.report = None
