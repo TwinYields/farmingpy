@@ -123,8 +123,11 @@ class APSIMXEnsemble(object):
             self.Spikes = [plant.FindDescendant[Models.PMF.Organs.GenericOrgan]("Spike") for plant in self.Plants]
 
         ps = [s.FindDescendant[Models.AgPasture.PastureSpecies]() for s in self.en.Simulations]
-        self.AGPRyegrass = [rg for rg in ps if rg.Name=='AGPRyegrass']
-        if self.AGPRyegrass[0] is None:
+        if ps[0] is not None:
+            self.AGPRyegrass = [rg for rg in ps if rg.Name=='AGPRyegrass']
+            if len(self.AGPRyegrass) == 0:
+                self.AGPRyegrass = None
+        else:
             self.AGPRyegrass = None
 
         self.models = [apsim.APSIMX(m) for m in self.Models]
