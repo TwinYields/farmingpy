@@ -193,7 +193,7 @@ class S2SentinelHub(object):
     def get_data(self, geom, startdate, enddate):
         self.geom = geom
         time_interval = (startdate, enddate)
-        bbox = BBox(geom.envelope, crs= CRS.UTM_35N)
+        bbox = BBox(geom.envelope.bounds, crs= CRS.UTM_35N)
         self._run_tasks(bbox, time_interval)
 
     def _run_tasks(self, bbox, time_interval):
@@ -242,7 +242,7 @@ class S2SentinelHub(object):
                             "viewAzimuthMean", "CLD", "CLP"]
         ds = xr.DataArray(x, dims=["time", "y", "x", "band"],
             coords= {
-                "time" : ep.timestamp,
+                "time" : ep.timestamps,
                 "y" : yc,
                 "x" : xc,
                 "band" : cl_bands
