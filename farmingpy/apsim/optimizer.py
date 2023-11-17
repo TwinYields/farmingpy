@@ -5,7 +5,6 @@ Optimizers for APSIM simulation models.
 import numpy as np
 import pandas as pd
 import nlopt
-
 class OptimizerBase(object):
 
     def __init__(self, model, params, obs_yield, obs_lai, harvest_date, zone_names = None, multithread = True):

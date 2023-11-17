@@ -4,7 +4,7 @@ import numpy as np
 import math
 import os
 
-class BioPhysStbx(object):
+class BioPhysS2tbx(object):
 
     def __init__(self, product="LAI", resolution=20, stbx_version="3.0"):
         """Implementation of Sentinel 2 Toolbox Neural Network for predicting
@@ -58,8 +58,8 @@ class BioPhysStbx(object):
 
         Args:
             ds xarray.DataArray: Sentinel 2 data. The format
-            needs to match the data retrieved using `twinyields.eo.S2SentinelHub`
-            class.
+                needs to match the data retrieved using `twinyields.eo.S2SentinelHub`
+                class.
 
         Returns:
             xarray.DataArray: Vegetation index
