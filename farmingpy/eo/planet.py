@@ -23,10 +23,9 @@ def read_planet(img_file, apply_mask=True, confidence=60, clip=None):
     dir, file = os.path.split(img_file)
     t = file.split("_3B")[0]
     mask_file = glob.glob(f"{dir}/*{t}*udm2*.tif")[0]
-    mask = rioxarray.open_rasterio(mask_file)
+    mask = rioxarray.open_rasterio(mask_file, masked=True)
     pl_img = rioxarray.open_rasterio(img_file, masked=True)
     crs = pl_img.spatial_ref.attrs["crs_wkt"]
-
 
     if apply_mask:
         pl_img = pl_img.where(mask.sel(band=8) == 0, np.nan)
@@ -38,6 +37,10 @@ def read_planet(img_file, apply_mask=True, confidence=60, clip=None):
         mask = mask.rio.clip(clip.geometry.values, drop=True)
 
     pl_img["band"] = np.array(pl_img.attrs["long_name"])
+    attrs = pl_img.attrs.copy()
+    pl_img = pl_img / 1e4
+    pl_img.attrs.update(attrs)
+
     mask["band"] = np.array(mask.attrs["long_name"])
     pl_img = xr.concat([pl_img, mask], dim="band")
     pl_img.attrs["long_name"] = list(pl_img.band.to_numpy())
@@ -45,11 +48,8 @@ def read_planet(img_file, apply_mask=True, confidence=60, clip=None):
     pl_img = pl_img.rio.write_crs(crs)
     # Filter out udm1 mask
     pl_img  = pl_img.transpose('band', 'y', 'x')
-    mask  = mask.transpose('band', 'y', 'x')
     time = np.datetime64(pl_img.attrs["TIFFTAG_DATETIME"].replace(":", "-", 2))
-    attrs = pl_img.attrs.copy()
-    pl_img = pl_img / 1e4
-    pl_img.attrs.update(attrs)
+
     pl_img["time"] = time.astype('datetime64[ns]')
     return pl_img
 
