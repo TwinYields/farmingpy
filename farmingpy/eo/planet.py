@@ -27,6 +27,7 @@ def read_planet(img_file, apply_mask=True, confidence=60, clip=None):
     pl_img = rioxarray.open_rasterio(img_file, masked=True)
     crs = pl_img.spatial_ref.attrs["crs_wkt"]
 
+
     if apply_mask:
         pl_img = pl_img.where(mask.sel(band=8) == 0, np.nan)
         pl_img = pl_img.where(mask.sel(band=7) >= confidence, np.nan)
@@ -37,6 +38,10 @@ def read_planet(img_file, apply_mask=True, confidence=60, clip=None):
         mask = mask.rio.clip(clip.geometry.values, drop=True)
 
     pl_img["band"] = np.array(pl_img.attrs["long_name"])
+    mask["band"] = np.array(mask.attrs["long_name"])
+    pl_img = xr.concat([pl_img, mask], dim="band")
+    pl_img.attrs["long_name"] = list(pl_img.band.to_numpy())
+
     pl_img = pl_img.rio.write_crs(crs)
     # Filter out udm1 mask
     pl_img  = pl_img.transpose('band', 'y', 'x')
@@ -46,7 +51,7 @@ def read_planet(img_file, apply_mask=True, confidence=60, clip=None):
     pl_img = pl_img / 1e4
     pl_img.attrs.update(attrs)
     pl_img["time"] = time.astype('datetime64[ns]')
-    return pl_img, mask
+    return pl_img
 
 def planet_to_S2_dataset(ds):
     """Convert PlanetScope 8 band image to fake Sentinel2
