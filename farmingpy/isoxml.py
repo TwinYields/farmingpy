@@ -28,7 +28,7 @@ class TimeLogData(object):
         self.farm = self._timelog_data[0].farm #: Farm name
         self.field = self._timelog_data[0].field #: Field name
         self.taskname = self._timelog_data[0].taskname #: Task name
-        self.devices = list(self._timelog_data[0].devices) #: List of devices
+        self.devices = list(self._timelog_data[0].devices) if self._timelog_data[0].devices else [] #: List of devices
         self.products = dict(self._timelog_data[0].products) #: Dictionary of products
         self._rates = None
         self._data = None
