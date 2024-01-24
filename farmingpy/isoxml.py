@@ -64,7 +64,7 @@ class TimeLogData(object):
 
 
     def _convert_columns(self, df):
-        df.insert(0, "time", pd.DatetimeIndex(df.TimeStartDATE + "T" + df.TimeStartTOFD))
+        df.insert(0, "time", pd.DatetimeIndex(df.TimeStartDATE + "T" + df.TimeStartTOFD.str.replace(".", ":", 2)))
         df.insert(1, "latitude", df.PositionNorth/1e7)
         df.insert(2, "longitude", df.PositionEast / 1e7)
 
@@ -118,12 +118,12 @@ class TimeLogData(object):
         ----------
         geo, optional
             If True return GeoDataFrame otherwise return DataFrame
-    
+
         Returns
         -------
             DataFrame or GeoDataFrame
         """
-        
+
         #if self._rates is not None:
         #    return self._rates
         df = pd.concat([self._rates_to_dataframe(tlg) for tlg in self._timelog_data])
