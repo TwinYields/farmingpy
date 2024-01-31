@@ -64,7 +64,7 @@ class TimeLogData(object):
 
 
     def _convert_columns(self, df):
-        df.insert(0, "time", pd.DatetimeIndex(df.TimeStartDATE + "T" + df.TimeStartTOFD.str.replace(".", ":", 2)))
+        df.insert(0, "time", pd.DatetimeIndex(df.TimeStartDATE + "T" + df.TimeStartTOFD))
         df.insert(1, "latitude", df.PositionNorth/1e7)
         df.insert(2, "longitude", df.PositionEast / 1e7)
 
