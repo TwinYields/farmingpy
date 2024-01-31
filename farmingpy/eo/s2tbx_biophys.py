@@ -106,20 +106,20 @@ class BioPhysS2tbx(object):
         X = X.transpose("y", "x", "band").to_numpy()
         l1 = np.tanh(np.dot(X, self.wts))
         l2 = np.dot(l1, self.wts2) + self.b2
-        lai = self.denormalize(l2, *self.denormalize_minmax)
+        index = self.denormalize(l2, *self.denormalize_minmax)
         lds = ds.isel(band=0)
-        lds.values = lai
-        lds.coords["band"] = "LAI"
+        lds.values = index
+        lds.coords["band"] = self.product
 
         # Remove extreme values from output
         tolerance = self.extreme_cases[0]
-        lai_min = self.extreme_cases[1]
-        lai_max = self.extreme_cases[2]
+        index_min = self.extreme_cases[1]
+        index_max = self.extreme_cases[2]
         l_copy = lds.copy()
         lds = lds.where(l_copy >= -tolerance, np.nan) #Everything less than tolerance is nan
-        lds = lds.where(l_copy >= lai_min, lai_min) #Everything below lai_min = lai_min
-        lds = lds.where(l_copy <= lai_max, lai_max) #Everything above lai_max to lai_max
-        lds = lds.where(l_copy <= (lai_max + tolerance), np.nan) #Everything above lai_max - tolerance to NaN
+        lds = lds.where(l_copy >= index_min, index_min) #Everything below index_min = index_min
+        lds = lds.where(l_copy <= index_max, index_max) #Everything above index_max to index_max
+        lds = lds.where(l_copy <= (index_max + tolerance), np.nan) #Everything above index_max - tolerance to NaN
         return lds
 
     def normalize(self, unnormalized, min, max):
@@ -134,9 +134,9 @@ class BioPhysS2tbx(object):
             s2_bands = ["B03", "B04", "B08"]
         else:
             s2_bands = ["B03", "B04", "B05", "B06", "B07", "B8A", "B11", "B12"]
-        lai_min = self.minmax_domain[0,:]
-        lai_max = self.minmax_domain[1,:]
+        index_min = self.minmax_domain[0,:]
+        index_max = self.minmax_domain[1,:]
         X = ds.sel(band=s2_bands)
-        X = X.where(X > lai_min, np.nan).where(X < lai_max, np.nan)
+        X = X.where(X > index_min, np.nan).where(X < index_max, np.nan)
         ds.loc[:,:,s2_bands] = X.loc[:,:,s2_bands]
         return ds
