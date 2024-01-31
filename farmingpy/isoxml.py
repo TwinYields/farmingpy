@@ -107,8 +107,12 @@ class TimeLogData(object):
         for hdata in tlg.datalogheader:
             df[hdata.name.replace(" ", "_")] = np.array(hdata.values)
         for tdata in tlg.datalogdata:
-            df[tdata.name.replace(" ", "_").lower()] = np.array(tdata.values)
-        df = self._convert_columns(df)
+            name = tdata.name.replace(" ", "_").lower()
+            if name.startswith("det"):
+                name = name.replace("-", "") + "_ddi" + str(tdata.DDI)
+            df[name] = np.array(tdata.values)
+        if not df.empty:
+            df = self._convert_columns(df)
         return df
 
     def rates(self, geo=False):
