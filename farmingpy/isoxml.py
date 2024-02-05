@@ -25,11 +25,17 @@ class TimeLogData(object):
             Path to TASKDATA.XML of unzipped task file.
         """
         self._load(taskfile)
-        self.farm = self._timelog_data[0].farm #: Farm name
-        self.field = self._timelog_data[0].field #: Field name
-        self.taskname = self._timelog_data[0].taskname #: Task name
-        self.devices = list(self._timelog_data[0].devices) if self._timelog_data[0].devices else [] #: List of devices
-        self.products = dict(self._timelog_data[0].products) #: Dictionary of products
+
+        # Check which items in list have data
+        dataidx = [idx for idx,d in enumerate(self._timelog_data) if len(d.datalogdata) > 0]
+        hidx = dataidx[0]
+        self._hidx = hidx
+
+        self.farm = self._timelog_data[hidx].farm #: Farm name
+        self.field = self._timelog_data[hidx].field #: Field name
+        self.taskname = self._timelog_data[hidx].taskname #: Task name
+        self.devices = list(self._timelog_data[hidx].devices) if self._timelog_data[0].devices else [] #: List of devices
+        self.products = dict(self._timelog_data[hidx].products) #: Dictionary of products
         self._rates = None
         self._data = None
 
@@ -51,7 +57,7 @@ class TimeLogData(object):
         dvc = []
         ddi = []
         ddi_desc = []
-        tlg = self._timelog_data[0]
+        tlg = self._timelog_data[self._hidx]
         for tdata in tlg.datalogdata:
             det.append(tdata.DETdesignator)
             detno.append(tdata.DETno)
@@ -162,7 +168,8 @@ class TimeLogData(object):
             tdata = tlg.datalogdata[int(widx)]
             if tdata.DETno in rate_dets:
                 df["work_state" + "_" + tdata.DETno] = np.array(tdata.values)
-        df = self._convert_columns(df)
+        if not df.empty:
+            df = self._convert_columns(df)
         return df
 
     def rasterize_rates(self, cols=None, spacing=1, crs="epsg:3067"):
