@@ -90,8 +90,7 @@ class SentinelHubClient(object):
 
     def __init__(self, config : SHConfig = None, max_threads = 8, crs = CRS.UTM_35N,
                 time_difference = datetime.timedelta(hours=1)):
-        if config is None:
-            self.config = SHConfig()
+        self.config = SHConfig() if config is None else config
         self.max_threads = max_threads
         self.crs = crs
         self._last_task = None
