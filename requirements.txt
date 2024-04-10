@@ -9,8 +9,10 @@ verde
 pyproj
 rasterio
 shapely
-eo-learn-io
+eo-learn-io==1.5.0
+eo-learn==1.5.2
 netcdf4
 sqlalchemy
 nlopt
 joblib
+rosetta-soil
