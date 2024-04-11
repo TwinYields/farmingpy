@@ -28,70 +28,75 @@ def r_to_pd(rdf):
     with (ro.default_converter + pandas2ri.converter).context():
         return ro.conversion.get_conversion().rpy2py(rdf)
 
-def _quantile_names(targets, funs):
-    names = dict()
-    for t in targets:
-        if t == "THS":
-            tnew = "sat"
-        elif t == "WP":
-            tnew = "pwp"
-        else:
-            tnew  = t.lower()
+class EUPTF2(object):
 
-        names[f"{t}_{funs[t]}_quantile= 0.05"] = f"{tnew}_05"
-        names[f"{t}_{funs[t]}_quantile= 0.25"] = f"{tnew}_25"
-        names[f"{t}_{funs[t]}_quantile= 0.5"] =  f"{tnew}"
-        names[f"{t}_{funs[t]}_quantile= 0.75"] =  f"{tnew}_75"
-        names[f"{t}_{funs[t]}_quantile= 0.95"] =  f"{tnew}_95"
-    return names
+    def __init__(self, soildata):
+        if euptf is None:
+            #print("Using euptft2 requires rpy2 and euptf2 package installed in R https://github.com/tkdweber/euptf2")
+            raise UserWarning("""
 
-def _pp_names(targets, funs):
-    names = dict()
-    for t in targets:
-        if t == "THS":
-            tnew = "sat"
-        elif t == "WP":
-            tnew = "pwp"
-        else:
-            tnew  = t.lower()
-        names[f"{t}_{funs[t]}"] = f"{tnew}"
-    return names
+euptf2 R-package not found
+--------------------------
 
-def _eupt_fy(soildata):
-    """rename columns and mandatory depth"""
-    sdata = soildata.rename(str.lower, axis=1)
-    sdata = sdata.rename({"clay" : "USCLAY", "silt" : "USSILT",
-                        "sand" : "USSAND"}, axis=1)
-    if not "depth_m" in sdata.columns:
-        sdata["DEPTH_M"] = 10
-    return sdata
+Using EUPTF2 class requires rpy2 in python https://rpy2.github.io/
+and euptf2 package installed in R https://github.com/tkdweber/euptf2
+""")
+        self.soildata = soildata
+        self.soildata_ptf = self._eupt_fy(self.soildata)
+        self.soildata_r = pd_to_r(self.soildata_ptf)
+        self.funs = self.which_ptf()
 
-def euptf2_which_ptf(sdata):
-    sdata = _eupt_fy(sdata)
-    sdata_r = pd_to_r(sdata)
-    return _euptf2_which_ptf_r(sdata_r)
+    def which_ptf(self):
+        with io.StringIO() as buf, redirect_stdout(buf):
+            funs = euptf.which_PTF(predictor= self.soildata_r, target = ro.StrVector(["THS", "FC", "FC_2", "WP", "KS", "VG", "AWC"]))
+        funs = r_to_pd(funs).to_dict(orient="records")[0]
+        return funs
 
-def _euptf2_which_ptf_r(sdata_r):
-    #Find best function for a parameter, redirect redundant print from R
-    with io.StringIO() as buf, redirect_stdout(buf):
-        funs = euptf.which_PTF(predictor= sdata_r, target = ro.StrVector(["THS", "FC", "WP", "KS", "VG", "AWC"]))
-    funs = r_to_pd(funs).to_dict(orient="records")[0]
-    return funs
-#%%
-def euptf2_soil_properties(soildata, quantiles = False):
-    sdata = _eupt_fy(soildata)
-    targets = ["THS", "FC", "WP", "AWC"]
-    query = "quantiles" if quantiles else "predictions"
-    sdata_r = pd_to_r(sdata)
-    funs = _euptf2_which_ptf_r(sdata_r)
+    def water_capacity(self, quantiles = False):
+        targets = ["THS", "FC_2", "FC", "WP", "AWC"]
+        query = "quantiles" if quantiles else "predictions"
 
-    for t in targets:
-        sdata_r =  euptf.euptfFun(ptf = funs[t], predictor = sdata_r,
-                                target = t, query=query)
-    sdata = r_to_pd(sdata_r)
-    names = _quantile_names(targets, funs) if quantiles else _pp_names(targets, funs)
-    rdata = sdata.rename(names, axis=1)[list(names.values())]
-    for v in ["awc", "pwp", "fc", "sat"]: #Reorder columns
-        rdata.insert(0, v, rdata.pop(v))
-    return rdata
+        sdata_r = self.soildata_r
+        for t in targets:
+            sdata_r =  euptf.euptfFun(ptf = self.funs[t], predictor = sdata_r,
+                                    target = t, query=query)
+        sdata = r_to_pd(sdata_r)
+        names = self._pred_names(targets, self.funs, quantiles)
+        rdata = sdata.rename(names, axis=1)[list(names.values())]
+        for v in ["awc", "pwp", "fc_33", "fc_10", "sat"]: #Reorder columns
+            rdata.insert(0, v, rdata.pop(v))
+        return rdata
 
+    def _pred_names(self, targets, funs, quantiles):
+        names = dict()
+        for t in targets:
+            if t == "THS":
+                tnew = "sat"
+            elif t == "WP":
+                tnew = "pwp"
+            elif t == "FC":
+                tnew = "fc_33"
+            elif t == "FC_2":
+                tnew = "fc_10"
+            else:
+                tnew  = t.lower()
+
+            if quantiles:
+                names[f"{t}_{funs[t]}_quantile= 0.05"] = f"{tnew}_05"
+                names[f"{t}_{funs[t]}_quantile= 0.25"] = f"{tnew}_25"
+                names[f"{t}_{funs[t]}_quantile= 0.5"] =  f"{tnew}"
+                names[f"{t}_{funs[t]}_quantile= 0.75"] =  f"{tnew}_75"
+                names[f"{t}_{funs[t]}_quantile= 0.95"] =  f"{tnew}_95"
+            else:
+                names[f"{t}_{funs[t]}"] = f"{tnew}"
+
+        return names
+
+    def _eupt_fy(self, soildata):
+        """rename columns and mandatory depth"""
+        sdata = soildata.rename(str.lower, axis=1)
+        sdata = sdata.rename({"clay" : "USCLAY", "silt" : "USSILT",
+                            "sand" : "USSAND"}, axis=1)
+        if not "depth_m" in sdata.columns:
+            sdata["DEPTH_M"] = 10
+        return sdata

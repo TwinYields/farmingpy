@@ -11,3 +11,4 @@ geopandas
 rosetta-soil
 rpy2
 pyarrow
+ipywidgets
