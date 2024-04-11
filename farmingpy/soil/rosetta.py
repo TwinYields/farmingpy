@@ -104,8 +104,8 @@ class Rosetta(object):
         #return pd.concat([soildata, data], axis=1)
         return data
 
-    def plot_water_retention(self, fc = 10, pwp=1500, sat=0.1, legend=True):
-        wpts = np.array([sat, fc, pwp]) # SAT, FC, PWP in kPAs
+    def plot_water_retention(self, fc = 10, wp=1500, sat=0.1, legend=True):
+        wpts = np.array([sat, fc, wp]) # SAT, FC, wp in kPAs
 
         phis = np.logspace(-3.5,6,2000)
         curves = [self.water_retention(phis, p) for i,p in self.rosettaparams.iterrows()]

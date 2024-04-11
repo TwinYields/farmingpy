@@ -48,12 +48,13 @@ and euptf2 package installed in R https://github.com/tkdweber/euptf2
 
     def which_ptf(self):
         with io.StringIO() as buf, redirect_stdout(buf):
-            funs = euptf.which_PTF(predictor= self.soildata_r, target = ro.StrVector(["THS", "FC", "FC_2", "WP", "KS", "VG", "AWC"]))
+            funs = euptf.which_PTF(predictor= self.soildata_r, target =
+                                   ro.StrVector(["THS", "FC", "FC_2", "WP", "KS", "VG", "AWC", "AWC_2"]))
         funs = r_to_pd(funs).to_dict(orient="records")[0]
         return funs
 
     def water_capacity(self, quantiles = False):
-        targets = ["THS", "FC_2", "FC", "WP", "AWC"]
+        targets = ["THS", "FC_2", "FC", "WP", "AWC", "AWC_2"]
         query = "quantiles" if quantiles else "predictions"
 
         sdata_r = self.soildata_r
@@ -63,24 +64,17 @@ and euptf2 package installed in R https://github.com/tkdweber/euptf2
         sdata = r_to_pd(sdata_r)
         names = self._pred_names(targets, self.funs, quantiles)
         rdata = sdata.rename(names, axis=1)[list(names.values())]
-        for v in ["awc", "pwp", "fc_33", "fc_10", "sat"]: #Reorder columns
+        for v in ["awc_33", "awc_10", "wp", "fc_33", "fc_10", "sat"]: #Reorder columns
             rdata.insert(0, v, rdata.pop(v))
         return rdata
 
     def _pred_names(self, targets, funs, quantiles):
         names = dict()
+        new_names = {"THS": "sat", "WP" : "wp",
+                     "FC": "fc_33", "FC_2": "fc_10",
+                    "AWC_2": "awc_10", "AWC" : "awc_33"}
         for t in targets:
-            if t == "THS":
-                tnew = "sat"
-            elif t == "WP":
-                tnew = "pwp"
-            elif t == "FC":
-                tnew = "fc_33"
-            elif t == "FC_2":
-                tnew = "fc_10"
-            else:
-                tnew  = t.lower()
-
+            tnew = new_names[t]
             if quantiles:
                 names[f"{t}_{funs[t]}_quantile= 0.05"] = f"{tnew}_05"
                 names[f"{t}_{funs[t]}_quantile= 0.25"] = f"{tnew}_25"
@@ -97,6 +91,8 @@ and euptf2 package installed in R https://github.com/tkdweber/euptf2
         sdata = soildata.rename(str.lower, axis=1)
         sdata = sdata.rename({"clay" : "USCLAY", "silt" : "USSILT",
                             "sand" : "USSAND"}, axis=1)
+        if "om" in sdata.columns:
+            sdata = sdata.rename({"om" : "OC"}, axis=1)
         if not "depth_m" in sdata.columns:
             sdata["DEPTH_M"] = 10
         return sdata
