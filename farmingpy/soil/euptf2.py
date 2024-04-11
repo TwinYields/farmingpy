@@ -2,7 +2,6 @@
 import pandas as pd
 import geopandas as gpd
 import numpy as np
-import matplotlib.pyplot as plt
 import io
 from contextlib import redirect_stdout
 # Requires
@@ -13,6 +12,11 @@ try:
     euptf =  importr("euptf2")
 except:
     euptf = None
+try:
+    import matplotlib.pyplot as plt
+except:
+    pass
+
 
 #%%
 # Van genuchten and soil hydraulic properties

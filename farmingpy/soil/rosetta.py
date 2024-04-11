@@ -3,9 +3,13 @@ from rosetta import rosetta, SoilData
 import pandas as pd
 import geopandas as gpd
 import numpy as np
-import matplotlib.pyplot as plt
 from functools import singledispatch
 import os
+try:
+    import matplotlib.pyplot as plt
+except:
+    pass
+
 
 # %%
 
