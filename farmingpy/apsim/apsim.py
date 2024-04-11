@@ -313,6 +313,40 @@ class APSIMX():
             cultivar.Command = [f"{k}={v}" for k,v in params.items()]
             self.cultivar_command = params
 
+    def print_cultivar(self, simulation=None):
+        """Print current cultivar paramaters, can be copied to APSIM user interface
+
+        Parameters
+        ----------
+        simulation, optional
+                Simulation name to be cloned, of None clone the first simulation in model
+        """
+        sim = self._find_simulation(simulation)
+        zone = sim.FindChild[Models.Core.Zone]()
+        cultivar = zone.Plants[0].FindChild[Models.PMF.Cultivar]()
+        print('\n'.join(list(cultivar.Command)))
+
+    def get_default_phenological_parameters(self, simulation=None):
+        """
+        Return all default parameters for a PMF crop in the simulation
+
+        Parameters
+        ----------
+        simulation, optional
+                Simulation name to be cloned, of None clone the first simulation in model
+
+        Returns
+        -------
+            dictionary of parameters with default values
+        """
+
+        sim = self._find_simulation(simulation)
+        phenology = sim.FindDescendant[Models.PMF.Phen.Phenology]()
+        targets = {}
+        for ch in phenology.FindAllDescendants[Models.Functions.Constant]():
+            targets[ch.FullPath.split("Phenology.")[1]] = ch.Value()
+        return targets
+
     def show_management(self, simulations=None):
         """Show management
 

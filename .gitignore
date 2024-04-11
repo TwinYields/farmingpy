@@ -7,3 +7,4 @@ dist/**
 *.code-workspace
 .DS_store
 dev/
+.vscode
