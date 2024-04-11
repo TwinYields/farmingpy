@@ -1,0 +1,14 @@
+pip
+setuptools
+numpy
+scipy
+matplotlib
+seaborn
+jupyterlab
+pandas
+polars
+geopandas
+rosetta-soil
+rpy2
+pyarrow
+ipywidgets
