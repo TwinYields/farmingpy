@@ -344,7 +344,8 @@ class APSIMX():
         phenology = sim.FindDescendant[Models.PMF.Phen.Phenology]()
         targets = {}
         for ch in phenology.FindAllDescendants[Models.Functions.Constant]():
-            targets[ch.FullPath.split("Phenology.")[1]] = ch.Value()
+            pth = ch.FullPath.split("Phenology.")[1]
+            targets[f"[Phenology].{pth}"] = ch.Value()
         return targets
 
     def show_management(self, simulations=None):
@@ -615,20 +616,60 @@ class APSIMX():
             psoil.DUL = dul
             self._fix_crop_ll(sim.Name)
 
-    # Make sure that crop ll is below and above LL15 DUL in all layers
+    # Set crop LL to LL15 and make sure it's below DUL in all layers
     def _fix_crop_ll(self, simulation):
         tmp_cll = self.get_crop_ll(simulation)
         dul = self.get_dul(simulation)
         ll15 = self.get_ll15(simulation)
         for j in range(len(tmp_cll)):
             if tmp_cll[j] > dul[j]:
-                tmp_cll[j] = dul[j] - 0.01
-
+                tmp_cll[j] = dul[j] - 0.02
         for j in range(len(tmp_cll)):
-            if tmp_cll[j] < ll15[j]:
-                tmp_cll[j] = ll15[j]
+            tmp_cll[j] = ll15[j]
 
         self.set_crop_ll(tmp_cll, simulation)
+
+
+    def _fill_layer(self, p, N_layers):
+        ns = len(p)
+        if ns == N_layers:
+            return p
+        else:
+            pfill = np.repeat(p[-1], N_layers -ns)
+            return np.concatenate([p, pfill])
+
+    def set_soil(self, soildf, simulations=None):
+        """Set soil properties using a DataFrame
+
+        Parameters
+        ----------
+        soildf
+            DataFrame with column names matching the parameter to be set. Soil
+            will be filled to have the same depth as current soil in the model.
+            cf. `get_soil`.
+        simulations, optional
+            List of simulation names to update, if `None` update all simulations
+        """
+        csoil = self.get_soil()
+        N_layers = csoil.shape[0]
+        for column in soildf:
+            col = column.lower()
+            p = soildf[column].to_numpy()
+            new = self._fill_layer(p, N_layers)
+            if col == "sat":
+                self.set_sat(new, simulations)
+            if col in ["fc_10", "fc", "dul"]:
+                self.set_dul(new, simulations)
+            if col in ["wp", "pwp", "ll15"]:
+                self.set_ll15(new, simulations)
+            if col in ["nh4", "initial nh4"]:
+                self.set_initial_nh4(new, simulations)
+            if col in ["no3", "initial no3"]:
+                self.set_initial_no3(new, simulations)
+            if col in ["bd", "bulk density"]:
+                self.set_bd(new, simulations)
+            if col in ["swcon"]:
+                self.set_swcon(new, simulations)
 
     def set_sat(self, sat, simulations=None):
         """Set soil saturated water content (SAT)
@@ -688,6 +729,7 @@ class APSIMX():
         for sim in self.find_simulations(simulations):
             psoil = sim.FindDescendant[Physical]()
             psoil.LL15 = ll15
+            psoil.AirDry = ll15
             self._fix_crop_ll(sim.Name)
 
     def set_bd(self, bd, simulations=None):
