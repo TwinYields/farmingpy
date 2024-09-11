@@ -57,6 +57,17 @@ class Report(object):
         df = pd.concat([pd.DataFrame.from_dict(d) for d in self.data])
         return df.reset_index(drop=True)
 
+    def grain_protein(self, Grain):
+        """Calculate grain protein %, equation from APSIM"""
+
+        gn = Grain.Live.N + Grain.Dead.N
+        gwt = Grain.Live.Wt + Grain.Dead.Wt
+        if gwt > 0:
+            return (gn/gwt) * 100 * 5.71
+        else:
+            return 0
+
+
     def report(self):
         """
         Called on each timestep in the ensemble, used to store
@@ -68,7 +79,14 @@ class Report(object):
                 "date" : [self.today for _ in range(self.en.N)],
                 "LAI" : [p.LAI for p in self.Plants],
                 "Yield" : [g.Wt*10 for g in self.Grains],
-                "Biomass" : [p.AboveGround.Wt for p in self.Plants]
+                "Biomass" : [p.AboveGround.Wt for p in self.Plants],
+                "Grain_protein" : [self.grain_protein(g) for g in self.Grains],
+                "Crop_AboveGroundNKgha" : [p.AboveGround.N*10 for p in self.Plants],
+                "N_stress" : [l.Fn for l in self.Leaves],
+                "W_stress" : [l.Fw for l in self.Leaves],
+                "N_TotalPlantSupply" : [p.Arbitrator.N.TotalPlantSupply for p in self.Plants],
+                "N_TotalPlantDemand" : [p.Arbitrator.N.TotalPlantDemand for p in self.Plants],
+                "DM_NutrientLimitation" : [p.Arbitrator.DM.NutrientLimitation for p in self.Plants]
             })
         if self.report_RG:
             self.data.append({
