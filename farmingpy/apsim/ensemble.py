@@ -6,6 +6,13 @@ from typing import Union
 import Models
 from Models.TwinYields import ModelEnsemble, SimulationEnsemble
 from Models.Core import IModel
+from dataclasses import dataclass
+
+@dataclass
+class Fertilizer:
+    no3 : float = 0.0
+    nh4: float = 0.0
+
 
 class Report(object):
     """Reporting class for APSIM model ensembles"""
@@ -66,7 +73,6 @@ class Report(object):
             return (gn/gwt) * 100 * 5.71
         else:
             return 0
-
 
     def report(self):
         """
@@ -131,6 +137,8 @@ class APSIMXEnsemble(object):
         self.Simulations = self.en.Simulations
         self.N = self.en.N
 
+        self.Fertilisers = [sim.FindDescendant[Models.Fertiliser]() for sim in self.en.Simulations]
+
         self.Plants = [sim.FindDescendant[Models.PMF.Plant]() for sim in self.en.Simulations]
         if self.Plants[0] is None:
             self.Plants = None
@@ -150,6 +158,7 @@ class APSIMXEnsemble(object):
 
         self.models = [apsim.APSIMX(m) for m in self.Models]
         self.report = None
+        self.fertilize_events = {}
 
     def commence(self):
         """Commence the simulation"""
@@ -183,6 +192,15 @@ class APSIMXEnsemble(object):
         """
         return np.datetime64(self.en.EndDate.ToString("yyy-MM-dd"))
 
+    def fertilize_on(self, date, fertilizer):
+        self.fertilize_events[date] =  fertilizer
+
+    def apply_fertilizer(self, fertilizer):
+        if fertilizer.no3 > 0:
+            [f.Apply(fertilizer.no3, Models.Fertiliser.Types.NO3N) for f in self.Fertilisers]
+        if fertilizer.nh4 > 0:
+            [f.Apply(fertilizer.no3, Models.Fertiliser.Types.NH4N) for f in self.Fertilisers]
+
     def run(self, reportclass = Report):
         """
         Run the simulation, custom class can be used to
@@ -203,7 +221,12 @@ class APSIMXEnsemble(object):
         reporter = reportclass(self)
         self.commence()
         while self.today <= self.enddate:
+            today_str = str(self.today)
+            if today_str in self.fertilize_events:
+                self.apply_fertilizer(self.fertilize_events[today_str])
             self.step()
+
+
             reporter.report()
         self.done()
         self.report = reporter

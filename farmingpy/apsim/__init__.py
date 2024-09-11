@@ -9,6 +9,6 @@ from .metfiles import read_met
 # TODO catch only C# import errors
 try:
     from .optimizer import SoilOptimizer, PhenologyOptimizer, OptimizerBase
-    from .ensemble import APSIMXEnsemble, Report
+    from .ensemble import APSIMXEnsemble, Report, Fertilizer
 except:
     pass
