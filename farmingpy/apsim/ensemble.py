@@ -138,6 +138,7 @@ class APSIMXEnsemble(object):
         self.N = self.en.N
 
         self.Fertilisers = [sim.FindDescendant[Models.Fertiliser]() for sim in self.en.Simulations]
+        self.WaterBalances = [sim.FindDescendant[Models.WaterModel.WaterBalance]() for sim in self.en.Simulations]
 
         self.Plants = [sim.FindDescendant[Models.PMF.Plant]() for sim in self.en.Simulations]
         if self.Plants[0] is None:
@@ -159,6 +160,7 @@ class APSIMXEnsemble(object):
         self.models = [apsim.APSIMX(m) for m in self.Models]
         self.report = None
         self.fertilize_events = {}
+        self.irrigate_events = {}
 
     def commence(self):
         """Commence the simulation"""
@@ -201,6 +203,13 @@ class APSIMXEnsemble(object):
         if fertilizer.nh4 > 0:
             [f.Apply(fertilizer.no3, Models.Fertiliser.Types.NH4N) for f in self.Fertilisers]
 
+    def irrigate_on(self, date, amount):
+        self.irrigate_events[date] =  amount
+
+    def irrigate(self, amount):
+        for wb in self.WaterBalances:
+            wb.Water[0] = amount
+
     def run(self, reportclass = Report):
         """
         Run the simulation, custom class can be used to
@@ -224,6 +233,9 @@ class APSIMXEnsemble(object):
             today_str = str(self.today)
             if today_str in self.fertilize_events:
                 self.apply_fertilizer(self.fertilize_events[today_str])
+            if today_str in self.irrigate_events:
+                self.irrigate(self.irrigate_events[today_str])
+
             self.step()
 
 
