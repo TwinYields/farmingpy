@@ -195,7 +195,7 @@ class APSIMXEnsemble(object):
         return np.datetime64(self.en.EndDate.ToString("yyy-MM-dd"))
 
     def fertilize_on(self, date, fertilizer):
-        self.fertilize_events[date] =  fertilizer
+        self.fertilize_events[str(date)] =  fertilizer
 
     def apply_fertilizer(self, fertilizer):
         if fertilizer.no3 > 0:
@@ -204,11 +204,11 @@ class APSIMXEnsemble(object):
             [f.Apply(fertilizer.no3, Models.Fertiliser.Types.NH4N) for f in self.Fertilisers]
 
     def irrigate_on(self, date, amount):
-        self.irrigate_events[date] =  amount
+        self.irrigate_events[str(date)] =  amount
 
     def irrigate(self, amount):
         for wb in self.WaterBalances:
-            wb.Water[0] = amount
+            wb.Water[0] = wb.Water[0] + amount
 
     def run(self, reportclass = Report):
         """
