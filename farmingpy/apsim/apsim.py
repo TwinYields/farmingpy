@@ -650,7 +650,7 @@ class APSIMX():
         simulations, optional
             List of simulation names to update, if `None` update all simulations
         """
-        csoil = self.get_soil()
+        csoil = self.get_soil(simulations)
         N_layers = csoil.shape[0]
         for column in soildf:
             col = column.lower()
@@ -670,6 +670,14 @@ class APSIMX():
                 self.set_bd(new, simulations)
             if col in ["swcon"]:
                 self.set_swcon(new, simulations)
+            if col in["ksat", "ksat_mm"]:
+                self.set_ksat(new, simulations)
+            if col in["sw"]:
+                self.set_sw(new, simulations)
+
+        #SW can't exceed SAT
+        csoil = self.get_soil(simulations)
+        self.set_sw(np.min(csoil[["SAT", "SW"]], axis=1), simulations)
 
     def set_sat(self, sat, simulations=None):
         """Set soil saturated water content (SAT)
@@ -761,6 +769,65 @@ class APSIMX():
         psoil = self.find_physical_soil(simulation)
         return np.array(psoil.BD)
 
+    def set_ksat(self, ksat, simulations=None):
+        """Set saturated hydraulic conductivity of soil mm/day
+
+        Parameters
+        ----------
+        bd
+            Collection of values, has to be the same length as existing values.
+        simulations, optional
+            List of simulation names to update, if `None` update all simulations
+        """
+
+        for sim in self.find_simulations(simulations):
+            psoil = sim.FindDescendant[Physical]()
+            psoil.KS = ksat
+
+    def get_ksat(self, simulation=None):
+        """Get saturated hydraulic conductivity of soil mm/day
+
+        Parameters
+        ----------
+        simulation, optional
+            Simulation name.
+        Returns
+        -------
+            Array of BD values
+        """
+        psoil = self.find_physical_soil(simulation)
+        return np.array(psoil.KS)
+
+    def set_sw(self, sw, simulations=None):
+        """Set soil water content
+
+        Parameters
+        ----------
+        bd
+            Collection of values, has to be the same length as existing values.
+        simulations, optional
+            List of simulation names to update, if `None` update all simulations
+        """
+
+        for sim in self.find_simulations(simulations):
+            psoil = sim.FindDescendant[Physical]()
+            psoil.SW = sw
+
+    def get_sw(self, simulation=None):
+        """Get soil water content
+
+        Parameters
+        ----------
+        simulation, optional
+            Simulation name.
+        Returns
+        -------
+            Array of BD values
+        """
+        psoil = self.find_physical_soil(simulation)
+        return np.array(psoil.SW)
+
+
     def set_swcon(self, swcon, simulations=None):
         """Set soil water conductivity (SWCON) constant for each soil layer.
 
@@ -842,8 +909,11 @@ class APSIMX():
         depth = psoil.Depth
 
 
-        return pd.DataFrame({"Depth" : depth, "LL15" : ll15, "DUL" : dul, "SAT" : sat, "Crop LL" : cll,
+        return pd.DataFrame({"Depth" : depth, "LL15" : ll15, "DUL" : dul,
+                    "SAT" : sat, "Crop LL" : cll,
                     "Bulk density": self.get_bd(simulation),
+                    "Ksat" : self.get_ksat(simulation),
+                    "SW" : self.get_sw(simulation),
                     "SWCON" : self.get_swcon(simulation),
                     "Initial NO3" : self.get_initial_no3(simulation),
                     "Initial NH4" : self.get_initial_nh4(simulation)})

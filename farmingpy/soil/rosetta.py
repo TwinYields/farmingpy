@@ -105,6 +105,7 @@ class Rosetta(object):
             data[pname] = self.water_retention(phi)
         data["awc_10"] = data["fc_10"] - data["wp"]
         data["awc_33"] = data["fc_33"] - data["wp"]
+        data["ksat"] = 10**self.rosettaparams["log10_ksat"]
         #return pd.concat([soildata, data], axis=1)
         return data
 
