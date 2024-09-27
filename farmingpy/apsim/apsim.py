@@ -175,6 +175,8 @@ class APSIMX():
         if clean:
             self._DataStore.Dispose()
             pathlib.Path(self._DataStore.FileName).unlink(missing_ok=True)
+            pathlib.Path(self._DataStore.FileName + "-wal" ).unlink(missing_ok=True)
+            pathlib.Path(self._DataStore.FileName + "-shm" ).unlink(missing_ok=True)
             self._DataStore.Open()
         if simulations is None:
             r = Models.Core.Run.Runner(self.Model, True, False, False, None, runtype)
@@ -314,7 +316,7 @@ class APSIMX():
             self.cultivar_command = params
 
     def print_cultivar(self, simulation=None):
-        """Print current cultivar paramaters, can be copied to APSIM user interface
+        """Print current cultivar parameters, can be copied to APSIM user interface
 
         Parameters
         ----------
