@@ -9,11 +9,12 @@ from shapely.geometry import Polygon
 
 
 class TaskReader(object):
+    """
+    Class to read planned ISOBUS task files in grid format.
+    """
 
     def __init__(self, taskfile):
         """
-        Class to read planned ISOBUS task files in grid format.
-
         Parameters
         ----------
         taskfile
@@ -21,6 +22,8 @@ class TaskReader(object):
 
         Based on: ISO 11783-10:2015.
         """
+
+        self.grid = None #: Planned task grid as xarray.DataArray
 
         if os.path.isdir(taskfile):
             taskfile = os.path.join(taskfile, "TASKDATA.XML")
@@ -96,9 +99,12 @@ class TaskReader(object):
         except:
             pass
 
-
     @property
     def points(self):
+        """
+        Planned task data as geopandas.GeoDataFrame.
+        """
+
         df = self.grid.to_dataframe("rate").reset_index()
         gdf = gpd.GeoDataFrame(df[["product", "rate"]],
                          geometry=gpd.points_from_xy(df["x"], df["y"]), crs="epsg:4326" )

@@ -14,6 +14,11 @@ except:
 # %%
 
 class Rosetta(object):
+    """
+    Interface to USDA Rosetta pedotransfer function model using https://pypi.org/project/rosetta-soil/.
+    Used to estimate soil hydraulic properties.
+    """
+
     rosetta_avg = None
 
     def __init__(self, soildata):
@@ -91,7 +96,7 @@ class Rosetta(object):
 
     def water_capacity(self):
         """
-        Get soil field saturatiom field capacity at 10 and 33 kPA,
+        Get soil saturation capacity, field capacity at 10 and 33 kPA,
         wilting point (1500kPA) and available water capacity.
         """
         #    rparams = self.find_params(soil)
@@ -110,6 +115,8 @@ class Rosetta(object):
         return data
 
     def plot_water_retention(self, fc = 10, wp=1500, sat=0.1, legend=True):
+        """Plot water retention curve"""
+
         wpts = np.array([sat, fc, wp]) # SAT, FC, wp in kPAs
 
         phis = np.logspace(-3.5,6,2000)

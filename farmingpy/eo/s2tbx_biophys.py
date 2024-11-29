@@ -5,18 +5,22 @@ import math
 import os
 
 class BioPhysS2tbx(object):
+    """
+    Implementation of Sentinel 2 Toolbox Neural Network for predicting
+    biophysical parameters from Sentinel 2 data. Uses weights from
+    s2tbx-biophysical: https://github.com/senbox-org/s2tbx/tree/master/s2tbx-biophysical
+
+    The model does input and output range validation,
+    but omits convexity checks.
+
+    Based on:
+    Weiss, M., Baret, F., Jay, S., 2020.
+    S2ToolBox level 2 products LAI, FAPAR, FCOVER. EMMAH-CAPTE, INRAe Avignon.
+    http://step.esa.int/docs/extra/ATBD_S2ToolBox_V2.0.pdf
+    """
 
     def __init__(self, product="LAI", resolution=20, stbx_version="3.0"):
-        """Implementation of Sentinel 2 Toolbox Neural Network for predicting
-        biophysical parameters from Sentinel 2 data. Uses weights from
-        s2tbx-biophysical. The model does input and output range validation,
-        but omits convexity checks.
-
-        Based on:
-        Weiss, M., Baret, F., Jay, S., 2020.
-        S2ToolBox level 2 products LAI, FAPAR, FCOVER. EMMAH-CAPTE, INRAe Avignon.
-        http://step.esa.int/docs/extra/ATBD_S2ToolBox_V2.0.pdf
-
+        """
         Args:
             product (str, optional): Output product, "LAI", "FAPAR", "FCOVER",
                 "LAI_Cab" or "LAI_cw". Defaults to "LAI".

@@ -6,9 +6,9 @@ setup(
     version='0.1.0',
     url='https://github.com/TwinYields/farmingpy',
     license='MIT',
-    author='Matti Pastell',
+    author='Matti Pastell, Annimari Hartikainen, Juha Backman',
     author_email='matti.pastell@luke.fi',
-    description='Package for reading ISOBUS task files and processing data',
+    description='farmingpy: a Python package for developing Digital Twins of precision farming systems',
     packages=find_packages(),
     include_package_data=True,
 )

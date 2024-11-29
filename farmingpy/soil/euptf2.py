@@ -33,8 +33,19 @@ def r_to_pd(rdf):
         return ro.conversion.get_conversion().rpy2py(rdf)
 
 class EUPTF2(object):
+    """
+    Interface to eutptfv2 pedotransfer functions using https://github.com/tkdweber/euptf2
+    via rpy2. These need to be installed by the user.
+
+    Used to estimate soil hydraulic properties.
+    """
 
     def __init__(self, soildata):
+        """
+        soildata: DataFrame with columns "sand", "silt", "clay".
+        Optionally also "om" (organic matter) and "depth_m" (sampling depth) can be given.
+        """
+
         if euptf is None:
             #print("Using euptft2 requires rpy2 and euptf2 package installed in R https://github.com/tkdweber/euptf2")
             raise UserWarning("""
@@ -51,6 +62,10 @@ and euptf2 package installed in R https://github.com/tkdweber/euptf2
         self.funs = self.which_ptf()
 
     def which_ptf(self):
+        """
+        Find the right prediction model based on input data.
+        """
+
         with io.StringIO() as buf, redirect_stdout(buf):
             funs = euptf.which_PTF(predictor= self.soildata_r, target =
                                    ro.StrVector(["THS", "FC", "FC_2", "WP", "KS", "VG", "AWC", "AWC_2"]))
@@ -58,6 +73,11 @@ and euptf2 package installed in R https://github.com/tkdweber/euptf2
         return funs
 
     def water_capacity(self, quantiles = False):
+        """
+        Get soil saturation capacity, field capacity at 10 and 33 kPA,
+        wilting point (1500kPA) and available water capacity.
+        """
+
         targets = ["THS", "FC_2", "FC", "WP", "AWC", "AWC_2"]
         query = "quantiles" if quantiles else "predictions"
 
