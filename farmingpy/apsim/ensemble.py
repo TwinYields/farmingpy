@@ -10,7 +10,14 @@ from dataclasses import dataclass
 
 @dataclass
 class Fertilizer:
-    no3 : float = 0.0
+    """
+    A class representing a fertilizer with its nitrogen content.
+
+    Attributes:
+        no3 (float): The nitrate content of the fertilizer in units of kilograms per hectare.
+        nh4 (float): The ammonia content of the fertilizer in units of kilograms per hectare.
+    """
+    no3: float = 0.0
     nh4: float = 0.0
 
 
@@ -194,7 +201,17 @@ class APSIMXEnsemble(object):
         """
         return np.datetime64(self.en.EndDate.ToString("yyy-MM-dd"))
 
-    def fertilize_on(self, date, fertilizer):
+    def fertilize_on(self, date: str, fertilizer: Fertilizer) -> None:
+        """
+        Schedule a fertilization event at the specified date with the given fertilizer.
+
+        Parameters
+        ----------
+        date : str
+            Date of the fertilization event in the format "yyy-MM-dd".
+        fertilizer : Fertilizer
+            Type and amount of fertilizer to be applied.
+        """
         self.fertilize_events[str(date)] =  fertilizer
 
     def apply_fertilizer(self, fertilizer):
@@ -203,7 +220,17 @@ class APSIMXEnsemble(object):
         if fertilizer.nh4 > 0:
             [f.Apply(fertilizer.no3, Models.Fertiliser.Types.NH4N) for f in self.Fertilisers]
 
-    def irrigate_on(self, date, amount):
+    def irrigate_on(self, date: str, amount: float):
+        """
+        Schedule an irrigation event at the specified date with the given amount.
+
+        Parameters
+        ----------
+        date : str
+            Date of the irrigation event in the format "yyyy-MM-dd".
+        amount : float
+            Amount of water to be applied.
+        """
         self.irrigate_events[str(date)] =  amount
 
     def irrigate(self, amount):
