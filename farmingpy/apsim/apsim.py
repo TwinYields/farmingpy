@@ -123,7 +123,8 @@ class APSIMX():
         # models with errors fail to load. More elegant solution would be handle
         # errors like the GUI does.
         # If loading fails the the model has errors -> Use ApsimNG user interface to debug
-        self.Model = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False)
+        #self.Model = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False)
+        self.Model = Models.TwinYields.ModelLoader.LoadModel(path)
         # This is needed for APSIM ~5/2023, hacky attempt to also support old version
         # TODO catch errors etc.
         try:
@@ -178,18 +179,22 @@ class APSIMX():
             pathlib.Path(self._DataStore.FileName + "-wal" ).unlink(missing_ok=True)
             pathlib.Path(self._DataStore.FileName + "-shm" ).unlink(missing_ok=True)
             self._DataStore.Open()
-        if simulations is None:
-            r = Models.Core.Run.Runner(self.Model, True, False, False, None, runtype)
-        else:
-            sims = self.find_simulations(simulations)
+        #if simulations is None:
+        #    r = Models.Core.Run.Runner(self.Model, True, False, False, None, runtype)
+        #else:
+        #    sims = self.find_simulations(simulations)
             # Runner needs C# list
-            cs_sims = List[Models.Core.Simulation]()
-            for s in sims:
-                cs_sims.Add(s)
-            r = Models.Core.Run.Runner(cs_sims, True, False, False, None, runtype)
-        e = r.Run()
-        if (len(e) > 0):
-            print(e[0].ToString())
+        #    cs_sims = List[Models.Core.Simulation]()
+        #    for s in sims:
+        #        cs_sims.Add(s)
+        #    r = Models.Core.Run.Runner(cs_sims, True, False, False, None, runtype)
+        #e = r.Run()
+        #if (len(e) > 0):
+        #    print(e[0].ToString())
+        for s in self.simulations:
+            s.Prepare()
+            s.Run()
+
         self.results = self._read_results()
 
         try:
