@@ -24,6 +24,7 @@ import pathlib
 import shutil
 import datetime
 import warnings
+import subprocess
 
 # Try to load from pythonpath and only then look for Model.exe
 try:
@@ -123,14 +124,15 @@ class APSIMX():
         # models with errors fail to load. More elegant solution would be handle
         # errors like the GUI does.
         # If loading fails the the model has errors -> Use ApsimNG user interface to debug
-        #self.Model = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False)
-        self.Model = Models.TwinYields.ModelLoader.LoadModel(path)
-        # This is needed for APSIM ~5/2023, hacky attempt to also support old version
-        # TODO catch errors etc.
-        try:
-            self.Model = self.Model.get_NewModel()
-        except:
-            pass
+
+        # Loading manager scripts using python.net is broken
+        # Last known working version with management is
+        # https://github.com/APSIMInitiative/ApsimX/commit/8bf6da66590bea1d6218d165dfe83bbc2dbdacc4
+        # The last argument loads the file without compiling manager scripts
+        self.Model = FileFormat.ReadFromFile[Models.Core.Simulations](path, None, False, False).get_NewModel()
+        #self._loader = Models.TwinYields.ModelLoader()
+        #self._loader.LoadModel(path)
+        #self.Model = self._loader.model
         #self.simulations = list(self._Simulation.FindAllChildren[Models.Core.Simulation]())
         #self.py_simulations = [Simulation(s) for s in self.simulations]
         self.datastore = self.Model.FindChild[Models.Storage.DataStore]().FileName
@@ -179,11 +181,21 @@ class APSIMX():
             pathlib.Path(self._DataStore.FileName + "-wal" ).unlink(missing_ok=True)
             pathlib.Path(self._DataStore.FileName + "-shm" ).unlink(missing_ok=True)
             self._DataStore.Open()
+
+
+        # Run using APSIM commandline
+        # needed because the ScriptCompiler no longer works with python.net
+        # the same outcome, but the model is slower
+        # TODO think of how to support --simulation-names argunment which requires a regex
+        self.save()
+        apsim_exec = pathlib.Path.home() / ".local/lib/apsimx/Models"
+        subprocess.run([apsim_exec, self.path])
+
         #if simulations is None:
         #    r = Models.Core.Run.Runner(self.Model, True, False, False, None, runtype)
         #else:
         #    sims = self.find_simulations(simulations)
-            # Runner needs C# list
+        #    # Runner needs C# list
         #    cs_sims = List[Models.Core.Simulation]()
         #    for s in sims:
         #        cs_sims.Add(s)
@@ -191,9 +203,11 @@ class APSIMX():
         #e = r.Run()
         #if (len(e) > 0):
         #    print(e[0].ToString())
-        for s in self.simulations:
-            s.Prepare()
-            s.Run()
+
+        #for s in self.simulations:
+        #    s.Prepare()
+        #    s.Run()
+        #    s.CleanU
 
         self.results = self._read_results()
 
