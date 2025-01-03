@@ -213,8 +213,8 @@ class APSIMX():
 
         clone_sim = Models.Core.Apsim.Clone(sim)
         clone_sim.Name = target
-        #clone_zone = clone_sim.FindChild[Models.Core.Zone]()
-        #clone_zone.Name = target
+        clone_zone = clone_sim.FindChild[Models.Core.Zone]()
+        clone_zone.Name = target
 
         self.Model.Children.Add(clone_sim)
         self._reload()
