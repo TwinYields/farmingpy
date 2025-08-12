@@ -16,6 +16,7 @@ def pydump_to_ngsild(pydump):
 def pyobj_to_ngsild(pyobj):
     pydump = pyobj.model_dump(exclude_none=True)
     ngsidump = {}
+    ngsidump["@context"] = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     for key, value in pydump.items():
         if key == 'agriparcel':
             ngsidump[key] = {'object':value, 'type':'Relationship'}
