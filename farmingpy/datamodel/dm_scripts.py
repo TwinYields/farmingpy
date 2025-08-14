@@ -1,5 +1,8 @@
 # convert dictionary to NGSI-LD format with Property/Relationship notation
 # input parameter is pydantic dump
+import shapely
+import json
+
 def pydump_to_ngsild(pydump):
     ngsidump = {}
     for key, value in pydump.items():
@@ -23,7 +26,9 @@ def pyobj_to_ngsild(pyobj):
         elif key == 'id' or key == 'type':
             ngsidump[key] = value
         elif key == 'location':
-            ngsidump[key] = {'value':value, 'type':'GeoProperty'}
+            value_geojson = shapely.to_geojson(value)
+            value_geojson_dict = json.loads(value_geojson)
+            ngsidump[key] = {'value':value_geojson_dict, 'type':'GeoProperty'}
         else:
             ngsidump[key] = {'value':value, 'type':'Property'}
     return ngsidump
