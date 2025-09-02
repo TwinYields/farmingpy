@@ -2,6 +2,7 @@
 # input parameter is pydantic dump
 import shapely
 import json
+import datetime
 
 # convert dictionary to NGSI-LD format with Property/Relationship notation
 # input parameter is pydantic object
@@ -18,6 +19,9 @@ def pyobj_to_ngsild(pyobj):
             value_geojson = shapely.to_geojson(value)
             value_geojson_dict = json.loads(value_geojson)
             ngsidump[key] = {'value':value_geojson_dict, 'type':'GeoProperty'}
+        elif isinstance(value, datetime.date): 
+            datetime_str = value.isoformat() # NGSI-LD requires date as a string in ISO 8601 format
+            ngsidump[key] = {'value':datetime_str, 'type':'Property'}
         else:
             ngsidump[key] = {'value':value, 'type':'Property'}
     return ngsidump
