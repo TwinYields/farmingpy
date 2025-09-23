@@ -16,9 +16,9 @@ def pyobj_to_ngsild(pyobj):
         elif key == 'id' or key == 'type':
             ngsidump[key] = value
         elif key == 'location':
-            value_geojson = shapely.to_geojson(value)
-            value_geojson_dict = json.loads(value_geojson)
-            ngsidump[key] = {'value':value_geojson_dict, 'type':'GeoProperty'}
+            #value_geojson = shapely.to_geojson(value) # uncomment to use shapely geometry instead of geojson
+            #value_geojson_dict = json.loads(value_geojson) # uncomment to use shapely geometry instead of geojson
+            ngsidump[key] = {'value':value, 'type':'GeoProperty'}
         elif isinstance(value, datetime.date): 
             datetime_str = value.isoformat() # NGSI-LD requires date as a string in ISO 8601 format
             ngsidump[key] = {'value':datetime_str, 'type':'Property'}
