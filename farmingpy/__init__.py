@@ -1,7 +1,13 @@
 from .ddi import print_ddi
-from .isoxml import TimeLogData
+try:
+    from .isoxml import TimeLogData
+except RuntimeError as e:
+    print("""Can't find CLR""")
 from .planned_isoxml import TaskReader
 from .zoning import *
-from . import eo
+try:
+    from . import eo
+except:
+    pass
 from .h3_utils import h3grid
 from .soil import *
