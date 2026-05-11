@@ -61,16 +61,35 @@ class BioPhysS2tbx(object):
         """Run the model on dataset.
 
         Args:
-            ds xarray.DataArray: Sentinel 2 data. The format
-                needs to match the data retrieved using `twinyields.eo.S2SentinelHub`
+            ds xarray.DataSet: Sentinel 2 data. The format
+                needs to match the data retrieved using `twinyields.eo.S2CDSE`
                 class.
 
         Returns:
             xarray.DataArray: Vegetation index
         """
 
+        if "time" in ds.dims:
+            ds = ds.squeeze("time")
+
         ds = ds.transpose("y", "x", "band")
+        
+        mask = ds["data"].sel(band="B02")
+        mask = mask.where(np.isnan(mask), 1.0)
+        dso = ds.copy()
+        
+        ds = ds["data"].copy()
         ds = self.clean_input(ds)
+        # Add angles as arrays
+        angles = []
+        for angle in ["view_zenith", "view_azimuth", "sun_zenith", "sun_azimuth"]:
+            bdata = mask * dso[angle]
+            bdata["band"] = angle
+            angles.append(bdata)
+        angles = xr.concat(angles, dim="band")
+
+        ds = xr.concat([ds, angles], dim="band")
+
         nm = self.normalize_minmax
         degToRad = math.pi/ 180
 
@@ -85,10 +104,11 @@ class BioPhysS2tbx(object):
             for i in range(3):
                 bands[:,:,i] = self.normalize(bands[:,:,i], *nm[i,:])
 
-            viewZen_norm = self.normalize(np.cos(ds.sel(band="viewZenithMean") * degToRad), *nm[3,:])
-            sunZen_norm  = self.normalize(np.cos(ds.sel(band="sunZenithAngles") * degToRad), *nm[4,:])
-            relAzim_norm = self.normalize(np.cos((ds.sel(band="sunAzimuthAngles") - ds.sel(band="viewAzimuthMean")) * degToRad), *nm[5,:])
+            viewZen_norm = self.normalize(np.cos(ds.sel(band="view_zenith") * degToRad), *nm[3,:])
+            sunZen_norm  = self.normalize(np.cos(ds.sel(band="sun_zenith") * degToRad), *nm[4,:])
+            relAzim_norm = self.normalize(np.cos((ds.sel(band="sun_azimuth") - ds.sel(band="view_azimuth")) * degToRad), *nm[5,:])
             relAzim_norm.coords["band"] = "relAzim_norm"
+            
             X = xr.concat([intercept, bands, viewZen_norm,sunZen_norm,relAzim_norm],
                       dim="band")
         else:
@@ -100,10 +120,12 @@ class BioPhysS2tbx(object):
             b8a_norm = self.normalize(ds.sel(band="B8A"), *nm[5,:])
             b11_norm = self.normalize(ds.sel(band="B11"), *nm[6,:])
             b12_norm = self.normalize(ds.sel(band="B12"), *nm[7,:])
-            viewZen_norm = self.normalize(np.cos(ds.sel(band="viewZenithMean") * degToRad), *nm[8,:])
-            sunZen_norm  = self.normalize(np.cos(ds.sel(band="sunZenithAngles") * degToRad), *nm[9,:])
-            relAzim_norm = self.normalize(np.cos((ds.sel(band="sunAzimuthAngles") - ds.sel(band="viewAzimuthMean")) * degToRad), *nm[10,:])
+            
+            viewZen_norm = self.normalize(np.cos(ds.sel(band="view_zenith") * degToRad), *nm[8,:])
+            sunZen_norm  = self.normalize(np.cos(ds.sel(band="sun_zenith") * degToRad), *nm[9,:])
+            relAzim_norm = self.normalize(np.cos((ds.sel(band="sun_azimuth") - ds.sel(band="view_azimuth")) * degToRad), *nm[10,:])
             relAzim_norm.coords["band"] = "relAzim_norm"
+            
             X = xr.concat([intercept, b03_norm, b04_norm, b05_norm, b06_norm, b07_norm, b8a_norm, b11_norm, b12_norm, viewZen_norm,sunZen_norm,relAzim_norm],
                       dim="band")
 
@@ -124,6 +146,7 @@ class BioPhysS2tbx(object):
         lds = lds.where(l_copy >= index_min, index_min) #Everything below index_min = index_min
         lds = lds.where(l_copy <= index_max, index_max) #Everything above index_max to index_max
         lds = lds.where(l_copy <= (index_max + tolerance), np.nan) #Everything above index_max - tolerance to NaN
+        #lds.coords["time"] = ds["time"]
         return lds
 
     def normalize(self, unnormalized, min, max):

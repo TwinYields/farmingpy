@@ -2,7 +2,7 @@ from .ddi import print_ddi
 try:
     from .isoxml import TimeLogData
 except RuntimeError as e:
-    print("""Can't find CLR""")
+    print("""Can't find CLR. Reading TimeLogData not available""")
 from .planned_isoxml import TaskReader
 from .zoning import *
 try:
