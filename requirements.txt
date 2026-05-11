@@ -9,9 +9,11 @@ verde
 pyproj
 rasterio
 shapely
-eo-learn==1.5.3
 netcdf4
 sqlalchemy
 nlopt
 joblib
 rosetta-soil
+pystac
+pystac_client
+tqdm

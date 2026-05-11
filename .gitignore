@@ -7,4 +7,8 @@ dist/**
 *.code-workspace
 .DS_store
 dev/
-.vscode
+.vscode# pixi environments
+.pixi/*
+!.pixi/config.toml
+pixi.toml
+pixi.lock
