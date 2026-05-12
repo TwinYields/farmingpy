@@ -159,7 +159,9 @@ def download_s2_item(item, clipdf):
             ("view:sun_elevation", "sun_zenith"),
             ("platform", "platform")
             ]
-    clipdf = clipdf.to_crs(i.assets["SCL_20m"].extra_fields["proj:code"])
+    
+    crs = i.assets["SCL_20m"].extra_fields["proj:code"]
+    clipdf = clipdf.to_crs(crs)
 
     bdata = []
     for band in ["B02_10m", "B03_10m", "B04_10m", "B05_20m", "B06_20m", "B07_20m", "B08_10m", "B8A_20m", "B11_20m", "B12_20m", "SCL_20m"]:
@@ -200,8 +202,6 @@ def download_s2_item(item, clipdf):
     mask = SCL.where((SCL == 4) | (SCL == 5) | (SCL == 6) | (SCL == 11)) > 0.0
     mask["band"] = "mask"
     ds["mask"] = mask["data"]
-
     
     del ds.coords["band_name"]
-    del ds.coords["spatial_ref"]
     return ds
