@@ -11,10 +11,9 @@ from tqdm.autonotebook import trange
 import configparser
 from pathlib import Path
 import rasterio
+from .stac import items_to_df
 
 #xr.set_options(use_new_combine_kwarg_defaults=True)
-
-
 class S2CDSE(object):
     """Access Sentinel-2 L2A imagery from the Copernicus Data Space Ecosystem."""
 
@@ -195,6 +194,7 @@ class S2CDSE(object):
 
 SCL_NODATA = 255
 
+"""
 def items_to_df(items):
     item_data = []
     for item in items:
@@ -210,12 +210,12 @@ def items_to_df(items):
     # Drop duplicated dates S2A and S2B can have the same acquisition date
     data.insert(0, "date", pd.to_datetime(data["time"]).dt.date)
     return data
-
-
-def unique_items(items, grid_code = None):
+"""
+    
+def unique_items(items, grid_code = None, source="cdse"):
     """Filter items to return all data from the same tile"""
     
-    data = items_to_df(items)
+    data = items_to_df(items, source)
     # Remove duplicate dates
     data = data.sort_values(["date", "good"], 
                             ascending=True).drop_duplicates("date", ignore_index=True)
@@ -238,6 +238,8 @@ def unique_items(items, grid_code = None):
             seen_ids.add(item.id)
 
     return pystac.ItemCollection(u_items)
+
+
 
 
 def item_quality(item, clipdf):
