@@ -11,7 +11,7 @@ from tqdm.autonotebook import trange
 import configparser
 from pathlib import Path
 import rasterio
-from .stac import items_to_df
+from .stac import item_quality, unique_items, download_s2_item
 
 #xr.set_options(use_new_combine_kwarg_defaults=True)
 class S2CDSE(object):
@@ -61,6 +61,7 @@ class S2CDSE(object):
 
         self.data = None
         self.downloaded_files = None
+        self.source = "cdse"
 
     def download_data(self, startdate, enddate, qi_filter=0.1,
                        grid_code = None,
@@ -130,10 +131,10 @@ class S2CDSE(object):
         #for item in items:
         for i in trange(N):
             item = items[i]
-            q, qdf = item_quality(item, self.clipdf)
+            q, qdf = item_quality(item, self.clipdf, source = self.source)
             if q <= qi_filter:
                 try:
-                    ds = download_s2_item(item, self.clipdf)
+                    ds = download_s2_item(item, self.clipdf, source = self.source)
                 except Exception as e:  #rasterio.RasterioIOError as e:
                     print(f"Failed to read from {item}")
                     print(e)
@@ -187,7 +188,7 @@ class S2CDSE(object):
             query= query,
         ).item_collection()
         if unique:
-            return unique_items(items, grid_code=grid_code)
+            return unique_items(items, grid_code=grid_code, source=self.source)
         else:
             return items
         
@@ -212,117 +213,91 @@ def items_to_df(items):
     return data
 """
     
-def unique_items(items, grid_code = None, source="cdse"):
-    """Filter items to return all data from the same tile"""
+
+
+
+# def item_quality(item, clipdf):
+#     i = item
+#     path = i.assets["SCL_20m"].href
+
+#     clipdf = clipdf.to_crs(i.assets["SCL_20m"].extra_fields["proj:code"])
+#     scl = rio.open_rasterio(path, masked=True, cache=False, 
+#                             lock=False).rio.clip(clipdf.geometry.values[:1],  
+#                                                  drop=True, from_disk=True)
+#     scl = scl.rio.write_nodata(SCL_NODATA).rio.clip(clipdf.geometry.values[:1],  
+#                                                     drop=True, from_disk=False)
+#     class_df = pd.DataFrame(i.assets["SCL_20m"].extra_fields["classification:classes"])
+#     class_names = class_df.name.to_list()
+#     aoi_pixels = np.sum(scl != SCL_NODATA)
+
+#     cls_data = {}
+#     for idx, cls in enumerate(class_names):
+#         qi = float(np.sum(scl == idx)/aoi_pixels)
+#         cls_data[cls] = qi
+
+#     labels = ["no_data", "saturated_or_defective", "dark_area_pixels",	"cloud_shadows", "unclassified", "cloud_medium_probability",	
+#               "cloud_high_probability",	"thin_cirrus", "snow"]
+#     qdf = pd.DataFrame(cls_data, index=[0])
+
+#     return qdf[labels].sum(axis=1).iloc[0], qdf
+
+
+# def download_s2_item(item, clipdf):
+#     i = item
     
-    data = items_to_df(items, source)
-    # Remove duplicate dates
-    data = data.sort_values(["date", "good"], 
-                            ascending=True).drop_duplicates("date", ignore_index=True)
-    uids = data.id.to_list()
+#     props = [("view:azimuth", "view_azimuth" ), 
+#             ("view:incidence_angle", "view_zenith"),
+#             ("view:sun_azimuth", "sun_azimuth"), 
+#             ("view:sun_elevation", "sun_zenith"),
+#             ("platform", "platform"),
+#             ("grid:code", "grid_code")
+#             ]
     
-    if grid_code is None:
-        # Select only one tile
-        best_tile = data.groupby("gridcode", as_index=False).agg({"nodata" : "mean", 
-                                                            "good" : "mean"}).sort_values("good", ascending=False).iloc[0]["gridcode"]
-    else:
-        best_tile = grid_code
+#     crs = i.assets["SCL_20m"].extra_fields["proj:code"]
+#     clipdf = clipdf.to_crs(crs)
 
-    items = [item for item in items if item.properties["grid:code"] == best_tile]
-    seen_ids = set()
-    u_items = []
-    # Filter duplicated items by id
-    for item in items:
-        if item.id in uids and not item.id in seen_ids:
-            u_items.append(item)
-            seen_ids.add(item.id)
-
-    return pystac.ItemCollection(u_items)
-
-
-
-
-def item_quality(item, clipdf):
-    i = item
-    path = i.assets["SCL_20m"].href
-    clipdf = clipdf.to_crs(i.assets["SCL_20m"].extra_fields["proj:code"])
-    scl = rio.open_rasterio(path, masked=True, cache=False, 
-                            lock=False).rio.clip(clipdf.geometry.values[:1],  
-                                                 drop=True, from_disk=True)
-    scl = scl.rio.write_nodata(SCL_NODATA).rio.clip(clipdf.geometry.values[:1],  
-                                                    drop=True, from_disk=False)
-    class_df = pd.DataFrame(i.assets["SCL_20m"].extra_fields["classification:classes"])
-    class_names = class_df.name.to_list()
-    aoi_pixels = np.sum(scl != SCL_NODATA)
-
-    cls_data = {}
-    for idx, cls in enumerate(class_names):
-        qi = float(np.sum(scl == idx)/aoi_pixels)
-        cls_data[cls] = qi
-
-    labels = ["no_data", "saturated_or_defective", "dark_area_pixels",	"cloud_shadows", "unclassified", "cloud_medium_probability",	
-              "cloud_high_probability",	"thin_cirrus", "snow"]
-    qdf = pd.DataFrame(cls_data, index=[0])
-
-    return qdf[labels].sum(axis=1).iloc[0], qdf
-
-
-def download_s2_item(item, clipdf):
-    i = item
-    
-    props = [("view:azimuth", "view_azimuth" ), 
-            ("view:incidence_angle", "view_zenith"),
-            ("view:sun_azimuth", "sun_azimuth"), 
-            ("view:sun_elevation", "sun_zenith"),
-            ("platform", "platform"),
-            ("grid:code", "grid_code")
-            ]
-    
-    crs = i.assets["SCL_20m"].extra_fields["proj:code"]
-    clipdf = clipdf.to_crs(crs)
-
-    bdata = []
-    for band in ["B02_10m", "B03_10m", "B04_10m", "B05_20m", "B06_20m", "B07_20m", "B08_10m", "B8A_20m", "B11_20m", "B12_20m", "SCL_20m"]:
-        path = i.assets[band].href
+#     bdata = []
+#     for band in ["B02_10m", "B03_10m", "B04_10m", "B05_20m", "B06_20m", "B07_20m", "B08_10m", "B8A_20m", "B11_20m", "B12_20m", "SCL_20m"]:
+#         path = i.assets[band].href
         
-        data = rio.open_rasterio(path, 
-                                 cache=False, 
-                                 lock=False).rio.clip(clipdf.geometry.values,
-                                                               drop=True, from_disk=True)
+#         data = rio.open_rasterio(path, 
+#                                  cache=False, 
+#                                  lock=False).rio.clip(clipdf.geometry.values,
+#                                                                drop=True, from_disk=True)
         
-        if not "SCL" in band:
-            scale = i.assets[band].extra_fields["raster:scale"]
-            offset = i.assets[band].extra_fields["raster:offset"]
-            data = (data*scale) + offset
+#         if not "SCL" in band:
+#             scale = i.assets[band].extra_fields["raster:scale"]
+#             offset = i.assets[band].extra_fields["raster:offset"]
+#             data = (data*scale) + offset
         
-        if "20m" in band:
-            data = data.rio.reproject_match(bdata[0], resampling=rasterio.enums.Resampling.bilinear)
-        data.coords["band_name"] = band.split("_")[0]
+#         if "20m" in band:
+#             data = data.rio.reproject_match(bdata[0], resampling=rasterio.enums.Resampling.bilinear)
+#         data.coords["band_name"] = band.split("_")[0]
 
-        if not "SCL" in band:
-            data = data.rio.write_nodata(np.nan).rio.clip(clipdf.geometry.values[:1])
-        else:
-            data = data.rio.write_nodata(SCL_NODATA).rio.clip(clipdf.geometry.values[:1])
+#         if not "SCL" in band:
+#             data = data.rio.write_nodata(np.nan).rio.clip(clipdf.geometry.values[:1])
+#         else:
+#             data = data.rio.write_nodata(SCL_NODATA).rio.clip(clipdf.geometry.values[:1])
 
-        bdata.append(data)
+#         bdata.append(data)
         
-    da = xr.concat(bdata, dim="band", 
-                   coords="different", compat="equals")
-    ds = da.to_dataset(name="data")
+#     da = xr.concat(bdata, dim="band", 
+#                    coords="different", compat="equals")
+#     ds = da.to_dataset(name="data")
     
     
-    for p in props:
-        ds[p[1]] = i.properties[p[0]]
-    ds["time"] = pd.to_datetime(i.properties["datetime"]).to_datetime64()
-    ds = ds.set_coords("time")
-    ds.coords["band"] = ds.coords["band_name"]
+#     for p in props:
+#         ds[p[1]] = i.properties[p[0]]
+#     ds["time"] = pd.to_datetime(i.properties["datetime"]).to_datetime64()
+#     ds = ds.set_coords("time")
+#     ds.coords["band"] = ds.coords["band_name"]
 
-    # Create a mask of valid pixels
-    # 4=vegetation, 5=not_vegetated, 6=water, 11=snow
-    SCL = ds.sel(band="SCL")
-    mask = SCL.where((SCL == 4) | (SCL == 5) | (SCL == 6) | (SCL == 11)) > 0.0
-    mask["band"] = "mask"
-    ds["mask"] = mask["data"]
+#     # Create a mask of valid pixels
+#     # 4=vegetation, 5=not_vegetated, 6=water, 11=snow
+#     SCL = ds.sel(band="SCL")
+#     mask = SCL.where((SCL == 4) | (SCL == 5) | (SCL == 6) | (SCL == 11)) > 0.0
+#     mask["band"] = "mask"
+#     ds["mask"] = mask["data"]
     
-    del ds.coords["band_name"]
-    return ds
+#     del ds.coords["band_name"]
+#     return ds

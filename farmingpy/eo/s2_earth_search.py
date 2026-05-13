@@ -11,9 +11,11 @@ from tqdm.autonotebook import trange
 import configparser
 from pathlib import Path
 import rasterio
+#from .stac import item_quality, items_to_df
+from .s2_cdse import S2CDSE
+from .stac import item_quality, unique_items, download_s2_item
 
-class S2EarthSearch(object):
-
+class S2EarthSearch(S2CDSE):
    
     def __init__(self, geodf, 
                 query= {"eo:cloud_cover": {"lt": 60}}
@@ -38,53 +40,4 @@ class S2EarthSearch(object):
 
         self.data = None
         self.downloaded_files = None
-
-    def search_items(self, startdate, enddate, unique=True, grid_code=None):
-        """Search CDSE STAC for Sentinel-2 L2A items intersecting the AOI centroid.
-
-        Args:
-            startdate (str): Start date for the STAC datetime range.
-            enddate (str): End date for the STAC datetime range.
-
-        Returns:
-            pystac.ItemCollection: Unique Sentinel-2 L2A items matching the date
-            range and the instance query.
-        """
-
-        dates = f"{startdate}/{enddate}"
-
-        query = self.query.copy()
-        if grid_code is not None:
-            query.update({"grid:code" : {"eq" : grid_code}})
-
-        items = self.catalog.search(
-            intersects=dict(type="Point", coordinates=[self.location.x, self.location.y]),
-            collections=["sentinel-2-l2a"],
-            datetime= dates,
-            sortby="properties.datetime",
-            query= query,
-        ).item_collection()
-        #if unique:
-        #    return unique_items(items, grid_code=grid_code)
-        #else:
-        #    return items
-        return items
-    
-    @staticmethod    
-    def items_to_df(items):
-        item_data = []
-        for item in items:
-            props = dict(time = item.properties["datetime"],
-                    gridcode = item.properties["grid:code"],
-                    id = item.id,
-                    vegetation =  item.properties["s2:vegetation_percentage"],
-                    not_vegetated = item.properties['s2:not_vegetated_percentage'], 
-                    water =  item.properties['s2:water_percentage']
-                    )
-            item_data.append(props)
-
-        data = pd.DataFrame(item_data)
-        data["good"] = data[["vegetation", "not_vegetated", "water"]].sum(axis=1)
-        # Drop duplicated dates S2A and S2B can have the same acquisition date
-        data.insert(0, "date", pd.to_datetime(data["time"]).dt.date)
-        return data
+        self.source = "es"
