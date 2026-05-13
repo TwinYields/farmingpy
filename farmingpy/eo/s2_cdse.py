@@ -114,6 +114,10 @@ class S2CDSE(object):
         items = self.search_items(startdate, enddate, grid_code=grid_code)
         data = []
         N = len(items)
+        if N == 0:
+            print("Nothing to download")
+            return
+        
 
         path = Path(path_prefix)
         if path.name == "":
@@ -187,6 +191,10 @@ class S2CDSE(object):
             sortby="properties.datetime",
             query= query,
         ).item_collection()
+
+        if len(items) == 0:
+            return items
+
         if unique:
             return unique_items(items, grid_code=grid_code, source=self.source)
         else:
