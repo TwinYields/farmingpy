@@ -54,12 +54,20 @@ class TaskReader(object):
 
         pdv = self.root.find("./TSK/TZN").findall("PDV")
         pdt = self.root.findall("./PDT")
-        vpns = [p.attrib["E"] for p in pdv]
+        
 
         self.products = [p.attrib["B"] for p in pdt]
-        self.units = [self.root.find(f"./VPN[@A='{v}']").attrib["E"] for v in vpns]
-        self.scales = [self.root.find(f"./VPN[@A='{v}']").attrib["C"] for v in vpns]
-
+        vpns = [p.attrib["E"] for p in pdv]
+        print(vpns)
+        try:
+            self.units = [self.root.find(f"./VPN[@A='{v}']").attrib["E"] for v in vpns]
+        except:
+            self.units = None
+        try:
+            self.scales = [self.root.find(f"./VPN[@A='{v}']").attrib["C"] for v in vpns]
+        except:
+            self.scales = []
+        
         if self.ext == ".xml":
             grid = np.fromfile(os.path.join(self.path,  grd_file), dtype=np.int32)
         elif self.ext == ".zip":

@@ -74,7 +74,7 @@ class BioPhysS2tbx(object):
 
         ds = ds.transpose("y", "x", "band")
         
-        mask = ds["data"].sel(band="B02")
+        mask = ds["data"].sel(band="B03")
         mask = mask.where(np.isnan(mask), 1.0)
         dso = ds.copy()
         
