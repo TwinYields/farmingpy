@@ -73,11 +73,15 @@ def item_quality(item, clipdf, source="cdse"):
 
     path = i.assets[scl_band].href
 
-    clipdf = clipdf.to_crs(crs)
     scl = rio.open_rasterio(path, masked=True, cache=False, 
-                            lock=False).rio.clip(clipdf.geometry.values[:1],  
+                            lock=False)
+    scl = scl.rio.write_nodata(SCL_NODATA)
+
+    if clipdf is not None:
+        clipdf = clipdf.to_crs(crs)
+        scl = scl.rio.clip(clipdf.geometry.values[:1],  
                                                  drop=True, from_disk=True)
-    scl = scl.rio.write_nodata(SCL_NODATA).rio.clip(clipdf.geometry.values[:1],  
+        scl.rio.clip(clipdf.geometry.values[:1],  
                                                     drop=True, from_disk=False)
     
     #class_df = pd.DataFrame(i.assets["SCL_20m"].extra_fields["classification:classes"])
@@ -128,7 +132,8 @@ def download_s2_item(item, clipdf, source = "cdse"):
         bands = ["blue", "green", "red", "rededge1", "rededge2", "rededge3", "nir", "nir08", "swir16", 
                  "swir22", "scl"]
         crs = i.properties["proj:code"]
-    clipdf = clipdf.to_crs(crs)
+    if clipdf is not None:
+        clipdf = clipdf.to_crs(crs)
 
     bdata = []
     for bidx, band in enumerate(bands):
@@ -136,8 +141,10 @@ def download_s2_item(item, clipdf, source = "cdse"):
         
         data = rio.open_rasterio(path, 
                                  cache=False, 
-                                 lock=False).rio.clip(clipdf.geometry.values,
-                                                               drop=True, from_disk=True)
+                                 lock=False)
+        if clipdf is not None:
+            data.rio.clip(clipdf.geometry.values,
+                            drop=True, from_disk=True)
         
         if not scl_band in band:
             if source == "cdse":
@@ -162,9 +169,13 @@ def download_s2_item(item, clipdf, source = "cdse"):
             data.coords["band_name"] = cdse_bands[bidx].split("_")[0]
 
         if not scl_band in band:
-            data = data.rio.write_nodata(np.nan).rio.clip(clipdf.geometry.values[:1])
+            data = data.rio.write_nodata(np.nan)
+            if clipdf is not None:
+                data.rio.clip(clipdf.geometry.values[:1])
         else:
-            data = data.rio.write_nodata(SCL_NODATA).rio.clip(clipdf.geometry.values[:1])
+            data = data.rio.write_nodata(SCL_NODATA)
+            if clipdf is not None:
+                data = data.rio.clip(clipdf.geometry.values[:1])
 
         bdata.append(data)
         

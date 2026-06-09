@@ -17,7 +17,7 @@ from .stac import item_quality, unique_items, download_s2_item
 class S2CDSE(object):
     """Access Sentinel-2 L2A imagery from the Copernicus Data Space Ecosystem."""
 
-    def __init__(self, geodf, access_key = None, secret_key = None,
+    def __init__(self, geodf=None, access_key = None, secret_key = None,
                  query= {"eo:cloud_cover": {"lt": 60}}
                  ):
         """Initialize a Copernicus Data Space Sentinel-2 client.
@@ -42,9 +42,12 @@ class S2CDSE(object):
 
         self.query = query
         self.clipdf = geodf
-        self.location = gpd.GeoDataFrame(geometry=[self.clipdf.union_all().centroid], 
+        if geodf is not None:
+            self.location = gpd.GeoDataFrame(geometry=[self.clipdf.union_all().centroid], 
                                          crs=self.clipdf.crs).to_crs("epsg:4326")["geometry"].iloc[0]
-        
+        else:
+            self.location = None
+
         # Configuration from
         # https://dataspace.copernicus.eu/news/2025-4-15-exploring-cdse-stac-catalogue-powerful-metadata-discovery-and-abstraction-tool
         os.environ['GDAL_HTTP_TCP_KEEPALIVE'] = "YES"
@@ -221,91 +224,3 @@ def items_to_df(items):
     return data
 """
     
-
-
-
-# def item_quality(item, clipdf):
-#     i = item
-#     path = i.assets["SCL_20m"].href
-
-#     clipdf = clipdf.to_crs(i.assets["SCL_20m"].extra_fields["proj:code"])
-#     scl = rio.open_rasterio(path, masked=True, cache=False, 
-#                             lock=False).rio.clip(clipdf.geometry.values[:1],  
-#                                                  drop=True, from_disk=True)
-#     scl = scl.rio.write_nodata(SCL_NODATA).rio.clip(clipdf.geometry.values[:1],  
-#                                                     drop=True, from_disk=False)
-#     class_df = pd.DataFrame(i.assets["SCL_20m"].extra_fields["classification:classes"])
-#     class_names = class_df.name.to_list()
-#     aoi_pixels = np.sum(scl != SCL_NODATA)
-
-#     cls_data = {}
-#     for idx, cls in enumerate(class_names):
-#         qi = float(np.sum(scl == idx)/aoi_pixels)
-#         cls_data[cls] = qi
-
-#     labels = ["no_data", "saturated_or_defective", "dark_area_pixels",	"cloud_shadows", "unclassified", "cloud_medium_probability",	
-#               "cloud_high_probability",	"thin_cirrus", "snow"]
-#     qdf = pd.DataFrame(cls_data, index=[0])
-
-#     return qdf[labels].sum(axis=1).iloc[0], qdf
-
-
-# def download_s2_item(item, clipdf):
-#     i = item
-    
-#     props = [("view:azimuth", "view_azimuth" ), 
-#             ("view:incidence_angle", "view_zenith"),
-#             ("view:sun_azimuth", "sun_azimuth"), 
-#             ("view:sun_elevation", "sun_zenith"),
-#             ("platform", "platform"),
-#             ("grid:code", "grid_code")
-#             ]
-    
-#     crs = i.assets["SCL_20m"].extra_fields["proj:code"]
-#     clipdf = clipdf.to_crs(crs)
-
-#     bdata = []
-#     for band in ["B02_10m", "B03_10m", "B04_10m", "B05_20m", "B06_20m", "B07_20m", "B08_10m", "B8A_20m", "B11_20m", "B12_20m", "SCL_20m"]:
-#         path = i.assets[band].href
-        
-#         data = rio.open_rasterio(path, 
-#                                  cache=False, 
-#                                  lock=False).rio.clip(clipdf.geometry.values,
-#                                                                drop=True, from_disk=True)
-        
-#         if not "SCL" in band:
-#             scale = i.assets[band].extra_fields["raster:scale"]
-#             offset = i.assets[band].extra_fields["raster:offset"]
-#             data = (data*scale) + offset
-        
-#         if "20m" in band:
-#             data = data.rio.reproject_match(bdata[0], resampling=rasterio.enums.Resampling.bilinear)
-#         data.coords["band_name"] = band.split("_")[0]
-
-#         if not "SCL" in band:
-#             data = data.rio.write_nodata(np.nan).rio.clip(clipdf.geometry.values[:1])
-#         else:
-#             data = data.rio.write_nodata(SCL_NODATA).rio.clip(clipdf.geometry.values[:1])
-
-#         bdata.append(data)
-        
-#     da = xr.concat(bdata, dim="band", 
-#                    coords="different", compat="equals")
-#     ds = da.to_dataset(name="data")
-    
-    
-#     for p in props:
-#         ds[p[1]] = i.properties[p[0]]
-#     ds["time"] = pd.to_datetime(i.properties["datetime"]).to_datetime64()
-#     ds = ds.set_coords("time")
-#     ds.coords["band"] = ds.coords["band_name"]
-
-#     # Create a mask of valid pixels
-#     # 4=vegetation, 5=not_vegetated, 6=water, 11=snow
-#     SCL = ds.sel(band="SCL")
-#     mask = SCL.where((SCL == 4) | (SCL == 5) | (SCL == 6) | (SCL == 11)) > 0.0
-#     mask["band"] = "mask"
-#     ds["mask"] = mask["data"]
-    
-#     del ds.coords["band_name"]
-#     return ds
