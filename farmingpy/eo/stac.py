@@ -3,6 +3,7 @@ import rioxarray as rio
 import pystac
 import rasterio
 import xarray as xr
+from rasterio.enums import Resampling
 
 SCL_NODATA = 255
 import numpy as np
@@ -138,7 +139,8 @@ def download_s2_item(item, clipdf, source = "cdse"):
                                  cache=False, 
                                  lock=False).rio.clip(clipdf.geometry.values,
                                                                drop=True, from_disk=True)
-        
+        is_scl = band.startswith("SCL")
+
         if not scl_band in band:
             if source == "cdse":
                 scale = i.assets[band].extra_fields["raster:scale"]
@@ -153,7 +155,8 @@ def download_s2_item(item, clipdf, source = "cdse"):
             data = (data*scale) + offset
 
         if i.assets[band].extra_fields["gsd"] == 20:
-            data = data.rio.reproject_match(bdata[0], resampling=rasterio.enums.Resampling.bilinear)
+            resampling = Resampling.nearest if is_scl else Resampling.bilinear
+            data = data.rio.reproject_match(bdata[0], resampling=resampling)
         
         # Use the same band names
         if source == "cdse":
@@ -174,7 +177,11 @@ def download_s2_item(item, clipdf, source = "cdse"):
     
     
     for p in props:
-        ds[p[1]] = i.properties[p[0]]
+        if p[0] == "view:sun_elevation":
+            # convert to sun zenith
+            ds[p[1]] = 90.0 - i.properties[p[0]]
+        else:    
+            ds[p[1]] = i.properties[p[0]]
     ds["time"] = pd.to_datetime(i.properties["datetime"]).to_datetime64()
     ds = ds.set_coords("time")
     ds.coords["band"] = ds.coords["band_name"]
